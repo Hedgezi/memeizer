@@ -1,10 +1,5 @@
 .gradle/
 .idea/
-.settings/
-.project
-app/.cxx/
-app/src/main/paddleocr/*
-!app/src/main/paddleocr/README.md
 build/
 **/build/
 local.properties
