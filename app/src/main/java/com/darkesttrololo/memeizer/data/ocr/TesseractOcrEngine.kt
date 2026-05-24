@@ -13,8 +13,11 @@ import kotlin.math.roundToInt
 class TesseractOcrEngine(
     private val context: Context,
     private val dataInstaller: TesseractDataInstaller,
+    override val language: String,
 ) : OcrEngine {
-    override suspend fun recognize(imageUri: Uri, language: String): OcrResult = withContext(Dispatchers.IO) {
+    override val engineName: String = "tesseract"
+
+    override suspend fun recognize(imageUri: Uri): OcrResult = withContext(Dispatchers.IO) {
         val dataPath = dataInstaller.ensureInstalled().absolutePath
         val bitmap = decodeScaledBitmap(imageUri)
         val tess = TessBaseAPI()
@@ -26,7 +29,7 @@ class TesseractOcrEngine(
             OcrResult(
                 text = text,
                 confidence = tess.meanConfidence(),
-                engine = ENGINE,
+                engine = engineName,
                 language = language,
             )
         } finally {
@@ -51,7 +54,6 @@ class TesseractOcrEngine(
     }
 
     private companion object {
-        const val ENGINE = "tesseract"
         const val MAX_SIDE = 2000
     }
 }

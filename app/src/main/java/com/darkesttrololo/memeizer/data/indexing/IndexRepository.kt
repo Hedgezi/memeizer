@@ -21,7 +21,7 @@ class IndexRepository(
     private val ocrDao: OcrDao,
     private val searchDao: SearchDao,
     private val scanner: FolderScanner,
-    private val ocrEngine: OcrEngine,
+    private val ocrEngines: List<OcrEngine>,
 ) {
     fun observeImageCount() = imageDao.observeImageCount()
 
@@ -91,8 +91,8 @@ class IndexRepository(
                 ocrDao.insert(
                     OcrResultEntity(
                         imageId = imageId,
-                        engine = "tesseract",
-                        language = "eng+rus",
+                        engine = ocrEngines.joinToString(separator = "+") { it.engineName },
+                        language = ocrEngines.joinToString(separator = "+") { it.language },
                         text = "",
                         confidence = null,
                         errorMessage = error.message,
@@ -110,21 +110,17 @@ class IndexRepository(
         .trim()
 
     private suspend fun recognizeAllLanguages(imageUri: Uri): com.darkesttrololo.memeizer.data.ocr.OcrResult {
-        val results = OCR_LANGUAGES.map { language -> ocrEngine.recognize(imageUri, language) }
+        val results = ocrEngines.map { engine -> engine.recognize(imageUri) }
         val combinedText = results.joinToString(separator = "\n\n") { result ->
-            "[${result.language}]\n${result.text.trim()}"
+            "[${result.engine}:${result.language}]\n${result.text.trim()}"
         }.trim()
         val confidences = results.mapNotNull { it.confidence }
 
         return com.darkesttrololo.memeizer.data.ocr.OcrResult(
             text = combinedText,
             confidence = confidences.takeIf { it.isNotEmpty() }?.average()?.toInt(),
-            engine = "tesseract",
-            language = OCR_LANGUAGES.joinToString(separator = "+"),
+            engine = ocrEngines.joinToString(separator = "+") { it.engineName },
+            language = ocrEngines.joinToString(separator = "+") { it.language },
         )
-    }
-
-    private companion object {
-        val OCR_LANGUAGES = listOf("rus", "eng")
     }
 }
