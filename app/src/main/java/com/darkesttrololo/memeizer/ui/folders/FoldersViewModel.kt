@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.darkesttrololo.memeizer.data.AppContainer
 import com.darkesttrololo.memeizer.data.db.IndexedFolderEntity
 import com.darkesttrololo.memeizer.data.indexing.IndexWorker
@@ -28,7 +29,7 @@ class FoldersViewModel(
     fun addFolder(uri: Uri) {
         viewModelScope.launch {
             container.folderRepository.addFolder(uri, uri.lastPathSegment ?: uri.toString())
-            startIndexing(replace = true)
+            startIndexing(replace = true, forceReindex = false)
         }
     }
 
@@ -38,8 +39,10 @@ class FoldersViewModel(
         }
     }
 
-    fun startIndexing(replace: Boolean) {
-        val request = OneTimeWorkRequestBuilder<IndexWorker>().build()
+    fun startIndexing(replace: Boolean, forceReindex: Boolean) {
+        val request = OneTimeWorkRequestBuilder<IndexWorker>()
+            .setInputData(workDataOf(IndexWorker.KEY_FORCE_REINDEX to forceReindex))
+            .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             IndexWorker.UNIQUE_WORK_NAME,
             if (replace) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP,

@@ -41,7 +41,7 @@ fun FoldersScreen(
                 Text("Memeizer indexes only folders you add here. OCR runs locally on device.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onAddFolder) { Text("Add folder") }
-                    OutlinedButton(onClick = { viewModel.startIndexing(replace = true) }) {
+                    OutlinedButton(onClick = { viewModel.startIndexing(replace = true, forceReindex = true) }) {
                         Text("Reindex")
                     }
                 }

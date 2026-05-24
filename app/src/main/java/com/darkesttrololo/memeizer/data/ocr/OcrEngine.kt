@@ -3,7 +3,7 @@ package com.darkesttrololo.memeizer.data.ocr
 import android.net.Uri
 
 interface OcrEngine {
-    suspend fun recognize(imageUri: Uri): OcrResult
+    suspend fun recognize(imageUri: Uri, language: String): OcrResult
 }
 
 data class OcrResult(

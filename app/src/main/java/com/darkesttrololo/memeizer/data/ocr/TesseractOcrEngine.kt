@@ -14,20 +14,20 @@ class TesseractOcrEngine(
     private val context: Context,
     private val dataInstaller: TesseractDataInstaller,
 ) : OcrEngine {
-    override suspend fun recognize(imageUri: Uri): OcrResult = withContext(Dispatchers.IO) {
+    override suspend fun recognize(imageUri: Uri, language: String): OcrResult = withContext(Dispatchers.IO) {
         val dataPath = dataInstaller.ensureInstalled().absolutePath
         val bitmap = decodeScaledBitmap(imageUri)
         val tess = TessBaseAPI()
 
         try {
-            check(tess.init(dataPath, LANGUAGE)) { "Failed to initialize Tesseract" }
+            check(tess.init(dataPath, language)) { "Failed to initialize Tesseract" }
             tess.setImage(bitmap)
             val text = tess.utF8Text.orEmpty()
             OcrResult(
                 text = text,
                 confidence = tess.meanConfidence(),
                 engine = ENGINE,
-                language = LANGUAGE,
+                language = language,
             )
         } finally {
             tess.recycle()
@@ -52,7 +52,6 @@ class TesseractOcrEngine(
 
     private companion object {
         const val ENGINE = "tesseract"
-        const val LANGUAGE = "eng+rus"
         const val MAX_SIDE = 2000
     }
 }

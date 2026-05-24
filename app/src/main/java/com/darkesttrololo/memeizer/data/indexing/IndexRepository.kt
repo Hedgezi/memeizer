@@ -25,20 +25,20 @@ class IndexRepository(
 ) {
     fun observeImageCount() = imageDao.observeImageCount()
 
-    suspend fun indexSelectedFolders() = withContext(Dispatchers.IO) {
+    suspend fun indexSelectedFolders(forceReindex: Boolean) = withContext(Dispatchers.IO) {
         folderDao.getEnabledFolders().forEach { folder ->
             scanner.scan(Uri.parse(folder.treeUri)).forEach { scannedImage ->
-                val imageId = upsertScannedImage(folder.id, scannedImage) ?: return@forEach
+                val imageId = upsertScannedImage(folder.id, scannedImage, forceReindex) ?: return@forEach
                 runOcr(imageId, scannedImage.uri)
             }
         }
     }
 
-    private suspend fun upsertScannedImage(folderId: Long, scannedImage: ScannedImage): Long? {
+    private suspend fun upsertScannedImage(folderId: Long, scannedImage: ScannedImage, forceReindex: Boolean): Long? {
         val now = System.currentTimeMillis()
         val existing = imageDao.findByUri(scannedImage.uri.toString())
 
-        if (existing != null && existing.contentKey == scannedImage.contentKey && existing.indexStatus == IndexStatus.INDEXED.name) {
+        if (!forceReindex && existing != null && existing.contentKey == scannedImage.contentKey && existing.indexStatus == IndexStatus.INDEXED.name) {
             return null
         }
 
@@ -67,7 +67,7 @@ class IndexRepository(
         val now = System.currentTimeMillis()
         imageDao.updateStatus(imageId, IndexStatus.INDEXING.name, now)
 
-        runCatching { ocrEngine.recognize(imageUri) }
+        runCatching { recognizeAllLanguages(imageUri) }
             .onSuccess { result ->
                 ocrDao.deleteForImage(imageId)
                 ocrDao.insert(
@@ -108,4 +108,23 @@ class IndexRepository(
         .lowercase()
         .replace(Regex("\\s+"), " ")
         .trim()
+
+    private suspend fun recognizeAllLanguages(imageUri: Uri): com.darkesttrololo.memeizer.data.ocr.OcrResult {
+        val results = OCR_LANGUAGES.map { language -> ocrEngine.recognize(imageUri, language) }
+        val combinedText = results.joinToString(separator = "\n\n") { result ->
+            "[${result.language}]\n${result.text.trim()}"
+        }.trim()
+        val confidences = results.mapNotNull { it.confidence }
+
+        return com.darkesttrololo.memeizer.data.ocr.OcrResult(
+            text = combinedText,
+            confidence = confidences.takeIf { it.isNotEmpty() }?.average()?.toInt(),
+            engine = "tesseract",
+            language = OCR_LANGUAGES.joinToString(separator = "+"),
+        )
+    }
+
+    private companion object {
+        val OCR_LANGUAGES = listOf("rus", "eng")
+    }
 }
