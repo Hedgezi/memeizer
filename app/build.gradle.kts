@@ -9,21 +9,57 @@ android {
     namespace = "com.darkesttrololo.memeizer"
     compileSdk = 35
 
+    if (project.findProperty("enablePaddleOcr") == "true") {
+        ndkVersion = "20.1.5948944"
+    }
+
     defaultConfig {
         applicationId = "com.darkesttrololo.memeizer"
         minSdk = 31
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        if (project.findProperty("enablePaddleOcr") == "true") {
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf(
+                        "-DANDROID_PLATFORM=android-23",
+                        "-DANDROID_STL=c++_shared",
+                        "-DANDROID_ARM_NEON=TRUE",
+                    )
+                    cppFlags += listOf("-std=c++11", "-frtti", "-fexceptions", "-Wno-format")
+                    abiFilters += listOf("arm64-v8a")
+                }
+            }
+        }
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField("boolean", "ENABLE_PADDLE_OCR", (project.findProperty("enablePaddleOcr") == "true").toString())
+        }
+        release {
+            buildConfigField("boolean", "ENABLE_PADDLE_OCR", (project.findProperty("enablePaddleOcr") == "true").toString())
+        }
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    if (project.findProperty("enablePaddleOcr") == "true") {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/paddleocr/CMakeLists.txt")
+            }
+        }
     }
 }
 
