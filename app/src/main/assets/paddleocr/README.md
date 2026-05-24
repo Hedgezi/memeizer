@@ -1,4 +1,4 @@
-PaddleOCR assets are not committed yet.
+PaddleOCR assets for the Cyrillic engine live under this directory.
 
 Expected layout for the Cyrillic engine:
 
@@ -10,8 +10,8 @@ Expected layout for the Cyrillic engine:
 The Java/JNI wrapper is based on the official PaddleOCR Android demo:
 https://github.com/PaddlePaddle/PaddleOCR/tree/main/deploy/android_demo
 
-Native build is opt-in for now because the local SDK must have NDK and CMake installed.
-Build with `-PenablePaddleOcr=true` after adding:
+Native build is opt-in for now because the app needs arm64-v8a PaddleLite/OpenCV
+native libraries. Build with `-PenablePaddleOcr=true` after adding:
 
 - app/src/main/paddleocr/PaddleLite
 - app/src/main/paddleocr/OpenCV
