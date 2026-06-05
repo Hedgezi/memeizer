@@ -9,8 +9,7 @@ import com.darkesttrololo.memeizer.data.folder.FolderScanner
 import com.darkesttrololo.memeizer.data.indexing.IndexRepository
 import com.darkesttrololo.memeizer.data.indexing.MemeizerWorkerFactory
 import com.darkesttrololo.memeizer.data.ocr.MlKitLatinOcrEngine
-import com.darkesttrololo.memeizer.data.ocr.TesseractDataInstaller
-import com.darkesttrololo.memeizer.data.ocr.TesseractOcrEngine
+import com.darkesttrololo.memeizer.data.ocr.NcnnPaddleOcrEngine
 import com.darkesttrololo.memeizer.data.search.SearchRepository
 
 class AppContainer(context: Context) {
@@ -23,9 +22,8 @@ class AppContainer(context: Context) {
     ).build()
 
     private val folderScanner = FolderScanner(appContext)
-    private val dataInstaller = TesseractDataInstaller(appContext)
     private val ocrEngines = listOf(
-        TesseractOcrEngine(appContext, dataInstaller, language = "rus"),
+        NcnnPaddleOcrEngine(appContext),
         MlKitLatinOcrEngine(appContext),
     )
 

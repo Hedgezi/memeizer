@@ -4,3 +4,7 @@ build/
 **/build/
 local.properties
 *.iml
+memes/
+models/
+eslav_PP-OCRv5_mobile_rec/
+third_party/**/.cxx/

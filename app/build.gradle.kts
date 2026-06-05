@@ -50,6 +50,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation(project(":ncnnAndroidPPOCR"))
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")

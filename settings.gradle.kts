@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Memeizer"
 include(":app")
+include(":ncnnAndroidPPOCR")
+project(":ncnnAndroidPPOCR").projectDir = file("third_party/ncnnAndroidPPOCR")

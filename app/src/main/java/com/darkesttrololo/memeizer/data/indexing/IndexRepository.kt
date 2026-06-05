@@ -109,10 +109,23 @@ class IndexRepository(
         .replace(Regex("\\s+"), " ")
         .trim()
 
+    private fun normalizeOcrText(result: com.darkesttrololo.memeizer.data.ocr.OcrResult): String {
+        val text = result.text.trim()
+        return if (result.engine == "paddleocr-ncnn" && result.language == "cyrillic") {
+            text.mapLatinHomoglyphsToCyrillic()
+        } else {
+            text
+        }
+    }
+
+    private fun String.mapLatinHomoglyphsToCyrillic(): String = map { char ->
+        LATIN_TO_CYRILLIC[char] ?: char
+    }.joinToString(separator = "")
+
     private suspend fun recognizeAllLanguages(imageUri: Uri): com.darkesttrololo.memeizer.data.ocr.OcrResult {
         val results = ocrEngines.map { engine -> engine.recognize(imageUri) }
         val combinedText = results.joinToString(separator = "\n\n") { result ->
-            "[${result.engine}:${result.language}]\n${result.text.trim()}"
+            "[${result.engine}:${result.language}]\n${normalizeOcrText(result)}"
         }.trim()
         val confidences = results.mapNotNull { it.confidence }
 
@@ -121,6 +134,35 @@ class IndexRepository(
             confidence = confidences.takeIf { it.isNotEmpty() }?.average()?.toInt(),
             engine = ocrEngines.joinToString(separator = "+") { it.engineName },
             language = ocrEngines.joinToString(separator = "+") { it.language },
+        )
+    }
+
+    private companion object {
+        val LATIN_TO_CYRILLIC = mapOf(
+            'A' to 'А',
+            'B' to 'В',
+            'C' to 'С',
+            'E' to 'Е',
+            'H' to 'Н',
+            'K' to 'К',
+            'M' to 'М',
+            'O' to 'О',
+            'P' to 'Р',
+            'T' to 'Т',
+            'X' to 'Х',
+            'Y' to 'У',
+            'a' to 'а',
+            'b' to 'в',
+            'c' to 'с',
+            'e' to 'е',
+            'h' to 'н',
+            'k' to 'к',
+            'm' to 'м',
+            'o' to 'о',
+            'p' to 'р',
+            't' to 'т',
+            'x' to 'х',
+            'y' to 'у',
         )
     }
 }
