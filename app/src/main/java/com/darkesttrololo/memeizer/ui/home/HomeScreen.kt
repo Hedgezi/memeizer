@@ -54,7 +54,7 @@ fun HomeScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) {
         if (state.indexedImageCount == 0) {
             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                 Text(
-                    text = "Add a folder first. Memeizer will OCR images locally with eng+rus Tesseract.",
+                    text = "Add a folder first. Memeizer will OCR images locally with PaddleOCR and ML Kit.",
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
