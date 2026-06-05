@@ -1,6 +1,7 @@
 package com.darkesttrololo.memeizer.data.search
 
 import com.darkesttrololo.memeizer.data.db.SearchDao
+import com.darkesttrololo.memeizer.data.db.SearchResultRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -8,11 +9,15 @@ import kotlinx.coroutines.flow.map
 class SearchRepository(private val searchDao: SearchDao) {
     fun search(query: String): Flow<List<SearchResult>> {
         val normalized = query.lowercase().trim()
-        if (normalized.isBlank()) return flowOf(emptyList())
+        if (normalized.isBlank()) return searchDao.observeGallery(GALLERY_LIMIT).mapSearchRows()
         val ftsQuery = toFtsQuery(normalized)
         if (ftsQuery.isBlank()) return flowOf(emptyList())
 
-        return searchDao.search(ftsQuery, SEARCH_LIMIT).map { rows ->
+        return searchDao.search(ftsQuery, SEARCH_LIMIT).mapSearchRows()
+    }
+
+    private fun Flow<List<SearchResultRow>>.mapSearchRows(): Flow<List<SearchResult>> =
+        map { rows ->
             rows.map { row ->
                 SearchResult(
                     imageId = row.id,
@@ -22,7 +27,6 @@ class SearchRepository(private val searchDao: SearchDao) {
                 )
             }
         }
-    }
 
     private fun toFtsQuery(query: String): String = query
         .replace(Regex("[^\\p{L}\\p{N}\\s]+"), " ")
@@ -31,6 +35,7 @@ class SearchRepository(private val searchDao: SearchDao) {
         .joinToString(separator = " ") { "$it*" }
 
     private companion object {
+        const val GALLERY_LIMIT = 500
         const val SEARCH_LIMIT = 100
     }
 }

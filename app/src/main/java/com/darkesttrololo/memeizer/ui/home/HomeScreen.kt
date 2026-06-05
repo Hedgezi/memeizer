@@ -62,10 +62,6 @@ fun HomeScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) {
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
-            } else if (state.query.isBlank()) {
-                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                    Text("Indexed images: ${state.indexedImageCount}. Type text to search.")
-                }
             }
 
             items(state.results, key = { it.imageId }) { result ->

@@ -67,6 +67,17 @@ interface SearchDao {
         """,
     )
     fun search(query: String, limit: Int): Flow<List<SearchResultRow>>
+
+    @Query(
+        """
+        SELECT indexed_images.id, indexed_images.uri, indexed_images.display_name AS displayName, COALESCE(meme_search_fts.text, '') AS text
+        FROM indexed_images
+        LEFT JOIN meme_search_fts ON indexed_images.id = meme_search_fts.image_id
+        ORDER BY indexed_images.updated_at DESC
+        LIMIT :limit
+        """,
+    )
+    fun observeGallery(limit: Int): Flow<List<SearchResultRow>>
 }
 
 data class SearchResultRow(
