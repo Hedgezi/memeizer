@@ -3,6 +3,7 @@ package com.darkesttrololo.memeizer.ui.home
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,53 +33,57 @@ fun HomeScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedResult by remember { mutableStateOf<SearchResult?>(null) }
 
-    LazyVerticalGrid(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues),
-        columns = GridCells.Adaptive(minSize = 150.dp),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = state.query,
-                onValueChange = viewModel::onQueryChanged,
-                label = { Text("Search meme text") },
-                singleLine = true,
-            )
-        }
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            value = state.query,
+            onValueChange = viewModel::onQueryChanged,
+            label = { Text("Search meme text") },
+            singleLine = true,
+        )
 
-        if (state.indexedImageCount == 0) {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = "Add a folder first. Memeizer will OCR images locally with PaddleOCR and ML Kit.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+        LazyVerticalGrid(
+            modifier = Modifier.fillMaxSize(),
+            columns = GridCells.Adaptive(minSize = 150.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (state.indexedImageCount == 0) {
+                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "Add a folder first. Memeizer will OCR images locally with PaddleOCR and ML Kit.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            } else if (state.query.isBlank()) {
+                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Text("Indexed images: ${state.indexedImageCount}. Type text to search.")
+                }
             }
-        } else if (state.query.isBlank()) {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                Text("Indexed images: ${state.indexedImageCount}. Type text to search.")
-            }
-        }
 
-        items(state.results, key = { it.imageId }) { result ->
-            Card(modifier = Modifier.clickable { selectedResult = result }) {
-                AsyncImage(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f),
-                    model = Uri.parse(result.uri),
-                    contentDescription = result.displayName,
-                    contentScale = ContentScale.Crop,
-                )
-                Text(
-                    modifier = Modifier.padding(8.dp),
-                    text = result.displayName,
-                    maxLines = 1,
-                )
+            items(state.results, key = { it.imageId }) { result ->
+                Card(modifier = Modifier.clickable { selectedResult = result }) {
+                    AsyncImage(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f),
+                        model = Uri.parse(result.uri),
+                        contentDescription = result.displayName,
+                        contentScale = ContentScale.Crop,
+                    )
+                    Text(
+                        modifier = Modifier.padding(8.dp),
+                        text = result.displayName,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
