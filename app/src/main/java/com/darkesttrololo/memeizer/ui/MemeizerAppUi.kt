@@ -7,14 +7,21 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,11 +31,14 @@ import com.darkesttrololo.memeizer.ui.folders.FoldersScreen
 import com.darkesttrololo.memeizer.ui.folders.FoldersViewModel
 import com.darkesttrololo.memeizer.ui.home.HomeScreen
 import com.darkesttrololo.memeizer.ui.home.HomeViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun MemeizerAppUi(container: AppContainer) {
-    var selectedTab by remember { mutableStateOf(Tab.Search) }
+    var selectedScreen by remember { mutableStateOf(Screen.Search) }
     val context = LocalContext.current
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val coroutineScope = rememberCoroutineScope()
     val foldersViewModel: FoldersViewModel = viewModel(
         factory = FoldersViewModel.factory(context.applicationContext, container),
     )
@@ -45,38 +55,44 @@ fun MemeizerAppUi(container: AppContainer) {
         foldersViewModel.addFolder(uri)
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == Tab.Search,
-                    onClick = { selectedTab = Tab.Search },
-                    label = { Text("Search") },
-                    icon = {},
-                )
-                NavigationBarItem(
-                    selected = selectedTab == Tab.Folders,
-                    onClick = { selectedTab = Tab.Folders },
-                    label = { Text("Folders") },
-                    icon = {},
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                NavigationDrawerItem(
+                    selected = selectedScreen == Screen.Settings,
+                    onClick = {
+                        selectedScreen = Screen.Settings
+                        coroutineScope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    label = { Text("Settings") },
                 )
             }
         },
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize()) {
-            when (selectedTab) {
-                Tab.Search -> HomeScreen(homeViewModel, paddingValues)
-                Tab.Folders -> FoldersScreen(
-                    viewModel = foldersViewModel,
-                    paddingValues = paddingValues,
-                    onAddFolder = { folderPicker.launch(null) },
-                )
+    ) {
+        Scaffold { paddingValues ->
+            Column(modifier = Modifier.fillMaxSize()) {
+                when (selectedScreen) {
+                    Screen.Search -> HomeScreen(
+                        viewModel = homeViewModel,
+                        paddingValues = paddingValues,
+                        onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
+                    )
+
+                    Screen.Settings -> FoldersScreen(
+                        viewModel = foldersViewModel,
+                        paddingValues = paddingValues,
+                        onNavigateBack = { selectedScreen = Screen.Search },
+                        onAddFolder = { folderPicker.launch(null) },
+                    )
+                }
             }
         }
     }
 }
 
-private enum class Tab {
+private enum class Screen {
     Search,
-    Folders,
+    Settings,
 }
