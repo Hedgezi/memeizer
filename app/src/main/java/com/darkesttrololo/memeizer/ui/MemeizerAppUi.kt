@@ -40,7 +40,7 @@ fun MemeizerAppUi(container: AppContainer) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     val foldersViewModel: FoldersViewModel = viewModel(
-        factory = FoldersViewModel.factory(context.applicationContext, container),
+        factory = FoldersViewModel.factory(container),
     )
     val homeViewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.factory(container),

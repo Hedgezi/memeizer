@@ -7,6 +7,7 @@ import com.darkesttrololo.memeizer.data.db.MemeizerDatabase
 import com.darkesttrololo.memeizer.data.folder.FolderRepository
 import com.darkesttrololo.memeizer.data.folder.FolderScanner
 import com.darkesttrololo.memeizer.data.indexing.IndexRepository
+import com.darkesttrololo.memeizer.data.indexing.IndexScheduler
 import com.darkesttrololo.memeizer.data.indexing.MemeizerWorkerFactory
 import com.darkesttrololo.memeizer.data.ocr.MlKitLatinOcrEngine
 import com.darkesttrololo.memeizer.data.ocr.NcnnPaddleOcrEngine
@@ -37,6 +38,7 @@ class AppContainer(context: Context) {
         ocrEngines = ocrEngines,
     )
     val searchRepository = SearchRepository(database.searchDao())
+    val indexScheduler = IndexScheduler(appContext)
 
     val workerFactory: WorkerFactory = MemeizerWorkerFactory(indexRepository)
 }

@@ -26,7 +26,8 @@ class IndexWorker(
     )
 
     companion object {
-        const val UNIQUE_WORK_NAME = "meme_indexing"
+        const val MANUAL_WORK_NAME = "meme_manual_indexing"
+        const val PERIODIC_WORK_NAME = "meme_periodic_indexing"
         const val KEY_FORCE_REINDEX = "force_reindex"
     }
 }

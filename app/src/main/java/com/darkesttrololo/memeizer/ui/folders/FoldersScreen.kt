@@ -50,11 +50,10 @@ fun FoldersScreen(
                     Text("Settings", style = MaterialTheme.typography.headlineSmall)
                 }
                 Text("Folders", style = MaterialTheme.typography.titleMedium)
-                Text("Memeizer indexes only folders you add here. OCR runs locally on device.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onAddFolder) { Text("Add folder") }
                     OutlinedButton(onClick = { viewModel.startIndexing(replace = true, forceReindex = true) }) {
-                        Text("Reindex")
+                        Text("Reindex now")
                     }
                 }
             }

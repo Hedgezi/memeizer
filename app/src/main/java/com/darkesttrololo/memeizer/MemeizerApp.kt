@@ -11,6 +11,7 @@ class MemeizerApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.indexScheduler.schedulePeriodicIndexing()
     }
 
     override val workManagerConfiguration: Configuration
