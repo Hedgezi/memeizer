@@ -13,6 +13,7 @@ android {
         applicationId = "com.darkesttrololo.memeizer"
         minSdk = 31
         targetSdk = 35
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "0.1.0"
     }
@@ -34,6 +35,9 @@ kotlin {
 }
 
 dependencies {
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+
     val roomVersion = "2.8.4"
     val lifecycleVersion = "2.10.0"
 

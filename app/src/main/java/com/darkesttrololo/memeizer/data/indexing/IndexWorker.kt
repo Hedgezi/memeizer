@@ -22,7 +22,10 @@ class IndexWorker(
         indexRepository.indexSelectedFolders(inputData.getBoolean(KEY_FORCE_REINDEX, false))
     }.fold(
         onSuccess = { Result.success() },
-        onFailure = { Result.failure() },
+        onFailure = {
+            if (it is kotlinx.coroutines.CancellationException) throw it
+            Result.failure()
+        },
     )
 
     companion object {

@@ -66,3 +66,12 @@ enum class IndexStatus {
     FAILED,
     SKIPPED,
 }
+
+// Keep each tree grant separately: overlapping trees can expose the same document.
+@Entity(tableName = "folder_images", primaryKeys = ["folder_id", "document_key"])
+data class FolderImageEntity(
+    @ColumnInfo(name = "folder_id") val folderId: Long,
+    @ColumnInfo(name = "document_key") val documentKey: String,
+    @ColumnInfo(name = "image_id") val imageId: Long,
+    val uri: String,
+)

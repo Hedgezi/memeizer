@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import com.equationl.ncnnandroidppocr.bean.OcrTextLineResult
 import com.equationl.ncnnandroidppocr.OCR
 import com.equationl.ncnnandroidppocr.bean.Device
 import com.equationl.ncnnandroidppocr.bean.DrawModel
@@ -62,33 +61,6 @@ class NcnnPaddleOcrEngine(
                 "Failed to initialize NCNN PaddleOCR model"
             }
             ocr = newOcr
-        }
-    }
-
-    private fun sortTextLines(textLines: List<OcrTextLineResult>): List<OcrTextLineResult> {
-        if (textLines.size < 2) return textLines
-
-        val rowTolerance = textLines
-            .mapNotNull { line ->
-                val ys = line.points.map { it.y }
-                (ys.maxOrNull() ?: return@mapNotNull null) - (ys.minOrNull() ?: return@mapNotNull null)
-            }
-            .sorted()
-            .let { heights -> heights.getOrNull(heights.size / 2) ?: 32 }
-            .coerceAtLeast(24) * 3 / 4
-
-        return textLines.sortedWith { left, right ->
-            val leftCenterY = left.points.map { it.y }.average().takeIf { !it.isNaN() } ?: 0.0
-            val rightCenterY = right.points.map { it.y }.average().takeIf { !it.isNaN() } ?: 0.0
-            val yDiff = leftCenterY - rightCenterY
-
-            if (kotlin.math.abs(yDiff) <= rowTolerance) {
-                val leftX = left.points.minOfOrNull { it.x } ?: 0
-                val rightX = right.points.minOfOrNull { it.x } ?: 0
-                leftX.compareTo(rightX)
-            } else {
-                yDiff.compareTo(0.0)
-            }
         }
     }
 

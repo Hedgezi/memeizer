@@ -3,6 +3,7 @@ package com.darkesttrololo.memeizer.data
 import android.content.Context
 import androidx.room.Room
 import androidx.work.WorkerFactory
+import com.darkesttrololo.memeizer.data.db.MIGRATION_1_2
 import com.darkesttrololo.memeizer.data.db.MemeizerDatabase
 import com.darkesttrololo.memeizer.data.folder.FolderRepository
 import com.darkesttrololo.memeizer.data.folder.FolderScanner
@@ -20,7 +21,7 @@ class AppContainer(context: Context) {
         appContext,
         MemeizerDatabase::class.java,
         "memeizer.db",
-    ).build()
+    ).addMigrations(MIGRATION_1_2).build()
 
     private val folderScanner = FolderScanner(appContext)
     private val ocrEngines = listOf(
@@ -28,13 +29,10 @@ class AppContainer(context: Context) {
         MlKitLatinOcrEngine(appContext),
     )
 
-    val folderRepository = FolderRepository(database.folderDao())
+    val folderRepository = FolderRepository(database)
     val indexRepository = IndexRepository(
-        folderDao = database.folderDao(),
-        imageDao = database.imageDao(),
-        ocrDao = database.ocrDao(),
-        searchDao = database.searchDao(),
-        scanner = folderScanner,
+        database = database,
+        scanner = folderScanner::scan,
         ocrEngines = ocrEngines,
     )
     val searchRepository = SearchRepository(database.searchDao())

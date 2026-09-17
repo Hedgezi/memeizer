@@ -17,12 +17,27 @@ interface FolderDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(folder: IndexedFolderEntity): Long
 
+    @Query("SELECT EXISTS(SELECT 1 FROM indexed_folders WHERE id = :folderId AND enabled = 1)")
+    suspend fun isEnabled(folderId: Long): Boolean
+
     @Query("DELETE FROM indexed_folders WHERE id = :folderId")
     suspend fun delete(folderId: Long)
 }
 
 @Dao
 interface ImageDao {
+    @Query("SELECT * FROM indexed_images WHERE id = :id")
+    suspend fun findById(id: Long): IndexedImageEntity?
+
+    @Query("SELECT indexed_images.* FROM indexed_images JOIN folder_images ON image_id = id WHERE document_key = :key LIMIT 1")
+    suspend fun findByDocumentKey(key: String): IndexedImageEntity?
+
+    @Query("DELETE FROM indexed_images WHERE id NOT IN (SELECT image_id FROM folder_images)")
+    suspend fun deleteOrphans()
+
+    @Query("UPDATE indexed_images SET folder_id = (SELECT folder_id FROM folder_images WHERE image_id = indexed_images.id LIMIT 1), uri = (SELECT uri FROM folder_images WHERE image_id = indexed_images.id LIMIT 1)")
+    suspend fun refreshAccessUris()
+
     @Query("SELECT COUNT(*) FROM indexed_images")
     fun observeImageCount(): Flow<Int>
 
@@ -41,6 +56,9 @@ interface ImageDao {
 
 @Dao
 interface OcrDao {
+    @Query("DELETE FROM ocr_results WHERE image_id NOT IN (SELECT image_id FROM folder_images)")
+    suspend fun deleteOrphans()
+
     @Query("DELETE FROM ocr_results WHERE image_id = :imageId")
     suspend fun deleteForImage(imageId: Long)
 
@@ -50,6 +68,9 @@ interface OcrDao {
 
 @Dao
 interface SearchDao {
+    @Query("DELETE FROM meme_search_fts WHERE image_id NOT IN (SELECT image_id FROM folder_images)")
+    suspend fun deleteOrphans()
+
     @Query("DELETE FROM meme_search_fts WHERE image_id = :imageId")
     suspend fun deleteForImage(imageId: Long)
 
@@ -61,7 +82,7 @@ interface SearchDao {
         SELECT indexed_images.id, indexed_images.uri, indexed_images.display_name AS displayName, meme_search_fts.text
         FROM meme_search_fts
         JOIN indexed_images ON indexed_images.id = meme_search_fts.image_id
-        WHERE meme_search_fts MATCH :query
+        WHERE meme_search_fts.text MATCH :query AND indexed_images.index_status = 'INDEXED'
         ORDER BY indexed_images.updated_at DESC
         LIMIT :limit
         """,
@@ -86,3 +107,15 @@ data class SearchResultRow(
     val displayName: String,
     val text: String,
 )
+
+@Dao
+interface FolderImageDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(link: FolderImageEntity)
+
+    @Query("SELECT * FROM folder_images WHERE folder_id = :folderId")
+    suspend fun forFolder(folderId: Long): List<FolderImageEntity>
+
+    @Query("DELETE FROM folder_images WHERE folder_id = :folderId")
+    suspend fun deleteFolder(folderId: Long)
+}
