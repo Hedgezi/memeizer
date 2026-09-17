@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name=".DebugBackendProvider"
+            android:authorities="${applicationId}.debug.backend"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+        <receiver
+            android:name=".DebugReindexReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.darkesttrololo.memeizer.DEBUG_REINDEX" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

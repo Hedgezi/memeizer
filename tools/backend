@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""JSON diagnostics for a running Memeizer debug installation (Python 3 + adb)."""
+
+import argparse
+import base64
+import json
+import math
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+
+
+class HarnessError(Exception):
+    pass
+
+
+def positive_timeout(value):
+    number = float(value)
+    if not math.isfinite(number) or number <= 0:
+        raise argparse.ArgumentTypeError("timeout must be a finite positive number")
+    return number
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--serial", "-s", default=os.environ.get("ANDROID_SERIAL"), help="adb device serial")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("status", help="folders, persisted grants, image counts and work states")
+    search = commands.add_parser("search", help="search through the application's SearchRepository")
+    search.add_argument("query", help="use an empty string to browse the gallery")
+    image = commands.add_parser("image", help="image row, OCR and FTS records")
+    image.add_argument("id", type=int)
+    index = commands.add_parser("index", help="enqueue indexing of selected folders")
+    index.add_argument("--force", action="store_true", help="repeat OCR even for unchanged images")
+    index.add_argument("--wait", action="store_true", help="wait for this specific job to finish")
+    index.add_argument("--timeout", type=positive_timeout, default=300, help="maximum wait in seconds (default: 300)")
+    return parser.parse_args()
+
+
+def call(serial, method, payload, timeout=25):
+    encoded = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode()).decode()
+    remote = shlex.join(["content", "call", "--uri", "content://com.darkesttrololo.memeizer.debug.backend",
+                         "--method", method, "--arg", encoded])
+    command = ["adb"] + (["-s", serial] if serial else []) + ["shell", remote]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    match = re.search(r"\bresult=([A-Za-z0-9+/=]+)", result.stdout)
+    if result.returncode or not match:
+        detail = (result.stderr or result.stdout).strip()
+        raise HarnessError(f"ADB request failed. Install the current debug APK and select a device with --serial. {detail}")
+    try:
+        return json.loads(base64.b64decode(match.group(1), validate=True))
+    except (ValueError, UnicodeError) as error:
+        raise HarnessError("Invalid response from debug provider") from error
+
+
+def run(args):
+    payload = {}
+    if args.command == "search":
+        payload = {"query": args.query}
+    elif args.command == "image":
+        if args.id <= 0:
+            raise HarnessError("Image ID must be positive")
+        payload = {"id": args.id}
+    elif args.command == "index":
+        payload = {"force": args.force}
+    response = call(args.serial, args.command, payload)
+    if not response["ok"]:
+        return response, 1
+    if args.command != "index" or not args.wait:
+        return response, 0
+    work_id = response["data"]["work_id"]
+    print(f"Waiting for work {work_id}", file=sys.stderr)
+    deadline = time.monotonic() + args.timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return {"ok": False, "error": "Timed out; indexing was not cancelled", "work_id": work_id}, 124
+        try:
+            response = call(args.serial, "work", {"work_id": work_id}, min(25, remaining))
+        except subprocess.TimeoutExpired:
+            if time.monotonic() >= deadline:
+                return {"ok": False, "error": "Timed out; indexing was not cancelled", "work_id": work_id}, 124
+            raise
+        if not response["ok"]:
+            response["work_id"] = work_id
+            return response, 1
+        state = response["data"]["state"]
+        if state in ("SUCCEEDED", "FAILED", "CANCELLED"):
+            response["ok"] = state == "SUCCEEDED"
+            return response, 0 if response["ok"] else 1
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
+
+
+def main():
+    args = parse_args()
+    try:
+        response, code = run(args)
+    except (HarnessError, OSError, subprocess.TimeoutExpired) as error:
+        response, code = {"ok": False, "error": str(error)}, 1
+    except KeyboardInterrupt:
+        response, code = {"ok": False, "error": "Interrupted; any queued indexing was not cancelled"}, 130
+    print(json.dumps(response, ensure_ascii=False, indent=2))
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

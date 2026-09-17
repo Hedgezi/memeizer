@@ -162,6 +162,52 @@ The recognizer dictionary includes the space token required by the `eslav_PP-OCR
 
 ## Database Inspection
 
+### Backend Harness (Debug Only)
+
+Install the current debug APK first. The harness requires Python 3 and `adb` on
+your PATH; it does not require sqlite3 or root. Run from the repository root:
+
+```bash
+tools/backend status
+tools/backend search "челябинск"
+tools/backend search ""                 # browse the gallery
+tools/backend image 42
+tools/backend index --wait
+tools/backend index --force --wait --timeout 600
+tools/backend --serial emulator-5554 status
+```
+
+`--serial` (before the command) or `ANDROID_SERIAL` selects a device. With neither,
+adb's default device selection applies. Commands print JSON to stdout; wait progress
+goes to stderr. Exit codes: `0` success, `1` command/job failure, `2` invalid CLI
+arguments, `124` wait timeout, `130` interrupted. Timeout or interruption does not
+cancel work. `index` without `--wait` returns the queued work ID immediately.
+
+`status` reports selected/disabled folders and persisted read grants, image counts
+grouped by active flag and indexing status, and manual/periodic WorkManager jobs.
+A persisted grant does not guarantee that the underlying folder is still available.
+`search` uses the same repository as the UI, including query normalization and the
+100-result search / 500-image gallery limits. `image` returns the image, OCR and FTS
+records, including inactive cached images; a missing ID returns an error.
+
+`index` appends a new manual job without cancelling existing jobs. It processes
+selected folders incrementally unless `--force` is supplied. `--wait` follows that
+specific job, including time spent queued (default timeout: 300 seconds). Job success
+does not imply that every image passed OCR: inspect `status` and `image` for per-image
+failures. Worker-level failures include an error message. If an ADB request fails
+while submitting a job, check `status` before retrying: it may already be queued.
+
+The provider and legacy reindex receiver exist only in debug builds and require
+the shell's `android.permission.DUMP` permission. No network server is started.
+
+Host-side transport/wait regression tests:
+
+```bash
+python3 -B -m unittest discover -s tools -p 'test_*.py'
+```
+
+### Manual Database Copy
+
 Copy the app database from a debug install:
 
 ```bash

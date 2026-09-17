@@ -5,12 +5,11 @@ import androidx.work.Configuration
 import com.darkesttrololo.memeizer.data.AppContainer
 
 class MemeizerApp : Application(), Configuration.Provider {
-    lateinit var container: AppContainer
-        private set
+    // Providers may receive a cold-start call before Application.onCreate finishes.
+    val container: AppContainer by lazy { AppContainer(this) }
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(this)
         container.indexScheduler.schedulePeriodicIndexing()
     }
 

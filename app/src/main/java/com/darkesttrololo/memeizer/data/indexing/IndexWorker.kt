@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ListenableWorker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.darkesttrololo.memeizer.MemeizerApp
 
 class IndexWorker(
@@ -24,7 +25,7 @@ class IndexWorker(
         onSuccess = { Result.success() },
         onFailure = {
             if (it is kotlinx.coroutines.CancellationException) throw it
-            Result.failure()
+            Result.failure(workDataOf("error" to "${it.javaClass.simpleName}: ${it.message}".take(1500)))
         },
     )
 
