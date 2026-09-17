@@ -1,7 +1,7 @@
 package com.darkesttrololo.memeizer.data
 
-import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -37,7 +37,9 @@ class IndexRegressionTest {
 
     @Before fun setup() {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), MemeizerDatabase::class.java).build()
-        folders = FolderRepository(db)
+        folders = FolderRepository(db, FolderOverlapChecker { ancestor, descendant ->
+            DocumentsContract.getDocumentId(descendant).startsWith(DocumentsContract.getDocumentId(ancestor) + "/")
+        }::overlaps)
     }
 
     @After fun close() = db.close()
@@ -56,7 +58,7 @@ class IndexRegressionTest {
         it.moveToFirst(); it.getInt(0)
     }
 
-    @Test fun removingFolderClearsGalleryOcrFtsAndAllowsReadding() = runBlocking {
+    @Test fun removingFolderHidesImagesAndReaddingReusesCachedOcr() = runBlocking {
         add()
         repository().indexSelectedFolders(false)
         assertEquals(1, search("cat*").size)
@@ -64,27 +66,92 @@ class IndexRegressionTest {
         assertEquals(0, count())
         assertTrue(db.searchDao().observeGallery(100).first().isEmpty())
         assertTrue(search("cat*").isEmpty())
-        assertEquals(0, sqlCount("ocr_results"))
-        assertEquals(0, sqlCount("meme_search_fts"))
+        assertEquals(1, sqlCount("ocr_results"))
+        assertEquals(1, sqlCount("meme_search_fts"))
+        assertEquals(1, sqlCount("indexed_images"))
+        assertTrue(folders.observeFolders().first().isEmpty())
+        recognize = { error("Unchanged cached image must not run OCR") }
         add()
+        assertEquals(0, count())
         repository().indexSelectedFolders(false)
         assertEquals(1, count())
         assertEquals(1, search("cat*").size)
     }
 
-    @Test fun overlappingTreesShareImageAndRetainUsableGrant() = runBlocking {
+    @Test fun overlappingSelectionsAreRejectedInBothDirectionsButSiblingsAreAllowed() = runBlocking {
         add(parent)
+        for (uri in listOf(parent, child)) {
+            try { add(uri); fail("Overlap must be rejected") } catch (_: OverlappingFolderException) { }
+        }
+        assertEquals(1, db.folderDao().getEnabledFolders().size)
+        folders.removeFolder(db.folderDao().getEnabledFolders().single().id)
         add(child)
+        try { add(parent); fail("Ancestor must be rejected") } catch (_: OverlappingFolderException) { }
+        add(Uri.parse("content://test/tree/root%2Fchildish"))
+        assertEquals(2, db.folderDao().getEnabledFolders().size)
+    }
+
+    @Test fun selectingSubfolderReusesOnlyItsCachedImagesAndUpdatesAccessUri() = runBlocking {
+        add()
+        val outside = image().copy(uri = Uri.parse("$parent/document/root%2Foutside"))
+        snapshots[parent.toString()] = listOf(image(), outside)
         repository().indexSelectedFolders(false)
-        assertEquals(1, count())
-        val parentId = db.folderDao().getEnabledFolders().single { it.treeUri == parent.toString() }.id
-        folders.removeFolder(parentId)
+        assertEquals(2, count())
+        folders.removeFolder(db.folderDao().getEnabledFolders().single().id)
+        add(child)
+        recognize = { error("Cached OCR must survive selection of a subfolder") }
+        repository().indexSelectedFolders(false)
         assertEquals(1, count())
         assertEquals(image(child).uri.toString(), search("cat*").single().uri)
-        repository().indexSelectedFolders(false)
-        assertEquals(1, sqlCount("meme_search_fts"))
+        assertEquals(2, sqlCount("indexed_images"))
+        assertEquals(2, sqlCount("ocr_results"))
         folders.removeFolder(db.folderDao().getEnabledFolders().single().id)
+        add(parent)
+        snapshots[parent.toString()] = listOf(image(), outside)
+        repository().indexSelectedFolders(false)
+        assertEquals(2, count())
+        assertEquals(2, sqlCount("indexed_images"))
+    }
+
+    @Test fun readdingRechecksChangedAndMissingFilesBeforeActivation() = runBlocking {
+        add()
+        snapshots[parent.toString()] = listOf(image(), image(name = "gone"))
+        repository().indexSelectedFolders(false)
+        folders.removeFolder(db.folderDao().getEnabledFolders().single().id)
+        add()
+        snapshots[parent.toString()] = listOf(image(modified = 2))
+        val calls = AtomicInteger()
+        recognize = { calls.incrementAndGet(); "updated" }
+        repository().indexSelectedFolders(false)
+        assertEquals(1, calls.get())
+        assertEquals(1, count())
+        assertEquals(1, search("updated*").size)
+        assertTrue(search("cat*").isEmpty())
+        assertEquals(2, sqlCount("ocr_results"))
+    }
+
+    @Test fun failedScanAfterReaddingDoesNotActivateCachedImages() = runBlocking {
+        add()
+        repository().indexSelectedFolders(false)
+        folders.removeFolder(db.folderDao().getEnabledFolders().single().id)
+        add()
+        scan = { throw IOException("Unavailable folder") }
+        try { repository().indexSelectedFolders(false); fail("Expected scan failure") } catch (_: IOException) { }
         assertEquals(0, count())
+        assertTrue(search("cat*").isEmpty())
+        assertTrue(db.searchDao().observeGallery(100).first().isEmpty())
+        assertEquals(1, sqlCount("ocr_results"))
+        assertEquals(1, sqlCount("meme_search_fts"))
+    }
+
+    @Test fun concurrentOverlappingSelectionsOnlyEnableOneFolder() = runBlocking {
+        val results = listOf(parent, child).map { uri ->
+            async(Dispatchers.IO) {
+                try { folders.addFolder(uri, "Folder"); true } catch (_: OverlappingFolderException) { false }
+            }
+        }.awaitAll()
+        assertEquals(1, results.count { it })
+        assertEquals(1, db.folderDao().getEnabledFolders().size)
     }
 
     @Test fun removalDuringOcrCannotResurrectEvenWhenSameTreeIsReadded() = runBlocking {
@@ -115,7 +182,7 @@ class IndexRegressionTest {
         release.complete(Unit)
         job.join()
         assertEquals(0, count())
-        assertEquals(0, sqlCount("folder_images"))
+        assertEquals(0, sqlCount("indexed_images"))
         assertEquals(0, sqlCount("ocr_results"))
     }
 
@@ -136,20 +203,20 @@ class IndexRegressionTest {
         assertEquals(1, sqlCount("meme_search_fts"))
     }
 
-    @Test fun deletedMovedAndEmptySnapshotsRemoveObsoleteRows() = runBlocking {
+    @Test fun deletedMovedAndEmptySnapshotsDeactivateObsoleteRows() = runBlocking {
         add()
         repository().indexSelectedFolders(false)
         snapshots[parent.toString()] = listOf(image(name = "moved"))
         repository().indexSelectedFolders(true)
         assertEquals(1, count())
         assertEquals("moved", db.searchDao().observeGallery(100).first().single().displayName)
-        assertEquals(1, sqlCount("ocr_results"))
-        assertEquals(1, sqlCount("meme_search_fts"))
+        assertEquals(2, sqlCount("ocr_results"))
+        assertEquals(2, sqlCount("meme_search_fts"))
         snapshots[parent.toString()] = emptyList()
         repository().indexSelectedFolders(true)
         assertEquals(0, count())
-        assertEquals(0, sqlCount("ocr_results"))
-        assertEquals(0, sqlCount("meme_search_fts"))
+        assertEquals(2, sqlCount("ocr_results"))
+        assertEquals(2, sqlCount("meme_search_fts"))
     }
 
     @Test fun failedOrCancelledScanPreservesPreviousIndex() = runBlocking {

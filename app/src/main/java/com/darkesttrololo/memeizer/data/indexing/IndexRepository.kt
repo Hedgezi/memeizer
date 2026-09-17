@@ -2,8 +2,8 @@ package com.darkesttrololo.memeizer.data.indexing
 
 import android.net.Uri
 import androidx.room.withTransaction
-import com.darkesttrololo.memeizer.data.db.FolderImageEntity
 import com.darkesttrololo.memeizer.data.db.IndexStatus
+import com.darkesttrololo.memeizer.data.db.IndexedFolderEntity
 import com.darkesttrololo.memeizer.data.db.IndexedImageEntity
 import com.darkesttrololo.memeizer.data.db.MemeSearchFtsEntity
 import com.darkesttrololo.memeizer.data.db.MemeizerDatabase
@@ -26,7 +26,6 @@ class IndexRepository(
     private val imageDao = database.imageDao()
     private val ocrDao = database.ocrDao()
     private val searchDao = database.searchDao()
-    private val links = database.folderImageDao()
 
     fun observeImageCount() = imageDao.observeImageCount()
 
@@ -37,19 +36,28 @@ class IndexRepository(
                 val snapshot = scanner(Uri.parse(folder.treeUri))
                 currentCoroutineContext().ensureActive()
                 val work = database.withTransaction {
-                    if (!folderDao.isEnabled(folder.id)) return@withTransaction emptyList()
+                    if (!folderDao.isCurrentSelection(folder.id, folder.selectionVersion)) return@withTransaction emptyList()
+                    imageDao.deactivateFolder(folder.id)
                     val pending = snapshot.distinctBy { it.documentKey }.mapNotNull { image ->
                         val existing = imageDao.findByDocumentKey(image.documentKey)
                         val id = existing?.id ?: imageDao.insert(
                             IndexedImageEntity(
-                                folderId = folder.id, uri = image.uri.toString(),
+                                folderId = folder.id, uri = image.uri.toString(), documentKey = image.documentKey,
                                 displayName = image.displayName, mimeType = image.mimeType,
                                 size = image.size, lastModified = image.lastModified,
                                 contentKey = image.contentKey, indexStatus = IndexStatus.PENDING.name,
                                 createdAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis(),
                             ),
                         )
-                        links.insert(FolderImageEntity(folder.id, image.documentKey, id, image.uri.toString()))
+                        if (existing != null) {
+                            imageDao.update(
+                                existing.copy(
+                                    folderId = folder.id, uri = image.uri.toString(), active = true,
+                                    displayName = image.displayName, mimeType = image.mimeType,
+                                    size = image.size, lastModified = image.lastModified,
+                                ),
+                            )
+                        }
                         if (!forceReindex && existing?.contentKey == image.contentKey && existing.indexStatus == IndexStatus.INDEXED.name) {
                             null
                         } else {
@@ -59,22 +67,16 @@ class IndexRepository(
                             id to image
                         }
                     }
-                    // Replace membership only once the full scan has succeeded.
-                    val keys = snapshot.mapTo(hashSetOf()) { it.documentKey }
-                    val retained = links.forFolder(folder.id).filter { it.documentKey in keys }
-                    links.deleteFolder(folder.id)
-                    retained.forEach { links.insert(it) }
-                    database.pruneUnselectedImages()
                     pending
                 }
-                work.forEach { (id, image) -> runOcr(folder.id, id, image.uri) }
+                work.forEach { (id, image) -> runOcr(folder, id, image.uri) }
             }
         }
     }
 
-    private suspend fun runOcr(folderId: Long, imageId: Long, imageUri: Uri) {
+    private suspend fun runOcr(folder: IndexedFolderEntity, imageId: Long, imageUri: Uri) {
         val started = database.withTransaction {
-            if (!folderDao.isEnabled(folderId) || imageDao.findById(imageId) == null) return@withTransaction false
+            if (!canSaveResult(folder, imageId)) return@withTransaction false
             imageDao.updateStatus(imageId, IndexStatus.INDEXING.name, System.currentTimeMillis())
             true
         }
@@ -89,7 +91,7 @@ class IndexRepository(
         currentCoroutineContext().ensureActive()
         database.withTransaction {
             // A folder may have been removed while OCR ran. Never resurrect its data.
-            if (!folderDao.isEnabled(folderId) || imageDao.findById(imageId) == null) return@withTransaction
+            if (!canSaveResult(folder, imageId)) return@withTransaction
             val value = result.getOrNull()
             val now = System.currentTimeMillis()
             ocrDao.deleteForImage(imageId)
@@ -108,6 +110,11 @@ class IndexRepository(
             imageDao.updateStatus(imageId, if (value != null) IndexStatus.INDEXED.name else IndexStatus.FAILED.name, now)
         }
     }
+
+    // Must be checked in the same transaction as each write, including after OCR.
+    private suspend fun canSaveResult(folder: IndexedFolderEntity, imageId: Long): Boolean =
+        folderDao.isCurrentSelection(folder.id, folder.selectionVersion) &&
+            imageDao.findById(imageId)?.let { it.active && it.folderId == folder.id } == true
 
     private fun normalize(text: String): String = text
         .lowercase()

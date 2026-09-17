@@ -3,8 +3,8 @@ package com.darkesttrololo.memeizer.data
 import android.content.Context
 import androidx.room.Room
 import androidx.work.WorkerFactory
-import com.darkesttrololo.memeizer.data.db.MIGRATION_1_2
 import com.darkesttrololo.memeizer.data.db.MemeizerDatabase
+import com.darkesttrololo.memeizer.data.folder.FolderOverlapChecker
 import com.darkesttrololo.memeizer.data.folder.FolderRepository
 import com.darkesttrololo.memeizer.data.folder.FolderScanner
 import com.darkesttrololo.memeizer.data.indexing.IndexRepository
@@ -21,7 +21,7 @@ class AppContainer(context: Context) {
         appContext,
         MemeizerDatabase::class.java,
         "memeizer.db",
-    ).addMigrations(MIGRATION_1_2).build()
+    ).build()
 
     private val folderScanner = FolderScanner(appContext)
     private val ocrEngines = listOf(
@@ -29,7 +29,7 @@ class AppContainer(context: Context) {
         MlKitLatinOcrEngine(appContext),
     )
 
-    val folderRepository = FolderRepository(database)
+    val folderRepository = FolderRepository(database, FolderOverlapChecker(appContext.contentResolver)::overlaps)
     val indexRepository = IndexRepository(
         database = database,
         scanner = folderScanner::scan,

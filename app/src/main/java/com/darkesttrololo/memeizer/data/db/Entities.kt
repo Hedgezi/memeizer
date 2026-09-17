@@ -12,6 +12,7 @@ data class IndexedFolderEntity(
     @ColumnInfo(name = "tree_uri") val treeUri: String,
     @ColumnInfo(name = "display_name") val displayName: String,
     val enabled: Boolean = true,
+    @ColumnInfo(name = "selection_version") val selectionVersion: Long = 1,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
@@ -19,7 +20,7 @@ data class IndexedFolderEntity(
 @Entity(
     tableName = "indexed_images",
     indices = [
-        Index(value = ["uri"], unique = true),
+        Index(value = ["document_key"], unique = true),
         Index(value = ["folder_id"]),
     ],
 )
@@ -27,6 +28,8 @@ data class IndexedImageEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "folder_id") val folderId: Long,
     val uri: String,
+    @ColumnInfo(name = "document_key") val documentKey: String,
+    val active: Boolean = true,
     @ColumnInfo(name = "display_name") val displayName: String,
     @ColumnInfo(name = "mime_type") val mimeType: String?,
     val size: Long?,
@@ -66,12 +69,3 @@ enum class IndexStatus {
     FAILED,
     SKIPPED,
 }
-
-// Keep each tree grant separately: overlapping trees can expose the same document.
-@Entity(tableName = "folder_images", primaryKeys = ["folder_id", "document_key"])
-data class FolderImageEntity(
-    @ColumnInfo(name = "folder_id") val folderId: Long,
-    @ColumnInfo(name = "document_key") val documentKey: String,
-    @ColumnInfo(name = "image_id") val imageId: Long,
-    val uri: String,
-)
