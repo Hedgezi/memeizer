@@ -25,6 +25,8 @@ Follow official Kotlin style, configured through `kotlin.code.style=official`, w
 
 ## Testing Guidelines
 
+Whenever you change the UI, you may use Mobile MCP to test it on a connected device or emulator without asking for additional permission.
+
 The vendored module uses JUnit 4 and AndroidX instrumentation with Espresso dependencies. Tests currently cover template examples; the app has no test suite or coverage threshold. Place new app tests in `app/src/test/` or `app/src/androidTest/`, configuring dependencies and the instrumentation runner as needed. Name classes `*Test` and methods after expected behavior. Manually verify folder selection, indexing, Cyrillic/Latin search, and empty-query browsing for relevant changes.
 
 ## Commit & Pull Request Guidelines
