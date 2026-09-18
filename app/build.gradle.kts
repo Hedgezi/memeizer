@@ -5,6 +5,25 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+import java.io.FileInputStream
+import java.util.Properties
+
+val signingPropertiesPath = providers.gradleProperty("memeizerSigningProperties")
+    .orElse(providers.environmentVariable("MEMEIZER_SIGNING_PROPERTIES"))
+    .orElse("${System.getProperty("user.home")}/.config/memeizer/signing.properties")
+    .get()
+val signingPropertiesFile = file(signingPropertiesPath)
+val signingProperties = Properties()
+if (signingPropertiesFile.isFile) {
+    FileInputStream(signingPropertiesFile).use(signingProperties::load)
+}
+val hasReleaseSigning = signingPropertiesFile.isFile && listOf(
+    "storeFile",
+    "storePassword",
+    "keyAlias",
+    "keyPassword",
+).all { !signingProperties.getProperty(it).isNullOrBlank() }
+
 android {
     namespace = "com.darkesttrololo.memeizer"
     compileSdk = 35
@@ -16,15 +35,58 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "0.1.0"
+
+        ndk {
+            // The bundled native OCR/ML Kit libraries for 32-bit ABIs are
+            // 4 KiB ELF-aligned; ship only the verified 16 KiB-capable ABIs.
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildFeatures {
         compose = true
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(signingProperties.getProperty("storeFile"))
+                storePassword = signingProperties.getProperty("storePassword")
+                keyAlias = signingProperties.getProperty("keyAlias")
+                keyPassword = signingProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val packagingRelease = allTasks.any { task ->
+        task.name.contains("Release", ignoreCase = true) &&
+            listOf("assemble", "bundle", "package", "install", "sign").any {
+                task.name.startsWith(it, ignoreCase = true)
+            }
+    }
+    if (packagingRelease && !hasReleaseSigning) {
+        throw GradleException(
+            "Release signing is not configured. Create $signingPropertiesPath with " +
+                "storeFile, storePassword, keyAlias, and keyPassword, then rerun the release build.",
+        )
+    }
+    if (packagingRelease && !signingPropertiesFile.isFile) {
+        throw GradleException("Release signing properties file does not exist: $signingPropertiesPath")
     }
 }
 

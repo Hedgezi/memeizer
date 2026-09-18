@@ -74,7 +74,11 @@ For PaddleOCR Cyrillic output, visually equivalent Latin glyphs are normalized t
 - Android NDK and CMake for the NCNN native module
 - Android 12 / API 31 or newer on the device/emulator
 
-The project currently uses Android Gradle Plugin `8.7.3`, Kotlin `2.0.21`, and KSP `2.0.21-1.0.28`.
+The project currently uses Android Gradle Plugin `8.8.2`, Kotlin `2.0.21`, and KSP `2.0.21-1.0.28`. Lint uses the K2 UAST implementation required by the current Compose and AndroidX custom lint detectors; unrelated dependencies were not broadly upgraded.
+
+The app version for the first release is `versionName 0.1.0` and
+`versionCode 1`. Every later release must increase `versionCode`; use the
+next user-facing version in `versionName` (for example, `0.1.1` or `0.2.0`).
 
 ## Build
 
@@ -89,6 +93,95 @@ The debug APK is written to:
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
+
+## Local Release Build And Signing
+
+Release signing is deliberately local-only. The keystore and the properties
+file must stay outside the repository. The default properties path is:
+
+```text
+~/.config/memeizer/signing.properties
+```
+
+The file must contain paths and secrets, for example:
+
+```properties
+storeFile=/absolute/path/to/memeizer-release.jks
+storePassword=replace-with-keystore-password
+keyAlias=memeizer
+keyPassword=replace-with-key-password
+```
+
+Create the permanent key once with `keytool`, store it in an encrypted backup,
+and never commit it:
+
+```bash
+mkdir -p ~/.config/memeizer
+keytool -genkeypair -v \
+  -keystore ~/.config/memeizer/memeizer-release.jks \
+  -alias memeizer -keyalg RSA -keysize 4096 -validity 10000 \
+  -storepass 'choose-a-long-password' -keypass 'choose-a-long-password' \
+  -dname 'CN=Memeizer Release, OU=Memeizer, O=Memeizer'
+chmod 600 ~/.config/memeizer/memeizer-release.jks
+```
+
+Put the passwords in `signing.properties` with mode `600`. Back up the JKS
+file and both passwords separately (for example, an encrypted offline copy
+and a password manager). Losing the key makes future updates impossible for
+the same Android package; do not rotate it for a patch release.
+
+Build the signed APK:
+
+```bash
+./gradlew clean assembleRelease
+```
+
+If the keystore or any required property is missing, the release packaging
+task fails with an explicit signing-configuration error. To use another
+properties file without putting it in the repository:
+
+```bash
+./gradlew -PmemeizerSigningProperties=/absolute/path/signing.properties assembleRelease
+```
+
+Verify the result before attaching it to a GitHub Release. The Android SDK
+build-tools provide `apksigner`, `zipalign`, and `apkanalyzer`:
+
+```bash
+APK=app/build/outputs/apk/release/app-release.apk
+zipalign -c -P 16 -v 4 "$APK"
+apksigner verify --verbose "$APK"
+apkanalyzer manifest application-id "$APK"
+apkanalyzer manifest version-name "$APK"
+apkanalyzer manifest version-code "$APK"
+sha256sum "$APK" > release-artifacts/Memeizer-v0.1.0.apk.sha256
+```
+
+The release APK must report `debuggable=false`, contain the four files listed
+in [Packaged OCR Assets](#packaged-ocr-assets), and pass `zipalign -P 16`.
+The release currently packages only `arm64-v8a` and `x86_64`: the bundled
+32-bit ML Kit/native OCR binaries are ELF-aligned for 4 KiB pages and are
+therefore excluded from the 16 KiB-compatible release.
+For a 16 KB-page device or emulator, install this exact APK and exercise OCR;
+the native module is built with flexible page-size support. If APK Analyzer
+or the 16 KB environment reports an incompatible native library, update or
+rebuild that dependency before publishing.
+
+Do not install a release APK over an existing debug installation: the debug
+key is different. Uninstall debug first, or use a clean package. For the
+upgrade test, install signed build A, create folders and indexed data, then
+install signed build B with a higher `versionCode` and confirm the folders,
+database, search results, and scheduled indexing remain present.
+
+## Release checklist
+
+Before calling a release ready, manually verify folder selection, Russian and
+English OCR, empty and non-empty search, image viewing, image sharing, and
+background indexing on the target device. Run the JVM tests and lint, inspect
+all remaining warnings, and record the APK SHA-256 next to the release asset.
+The release description for `v0.1.0` is kept in
+[`RELEASE_NOTES_v0.1.0.md`](RELEASE_NOTES_v0.1.0.md). GitHub upload is manual;
+this repository does not add GitHub Actions.
 
 If you use the Android Studio bundled JBR directly:
 

@@ -5,3 +5,14 @@ build/
 local.properties
 *.iml
 locals/
+
+# Local release signing material and generated release artifacts.
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+keystore.properties
+signing.properties
+*.sha256
+release-artifacts/
