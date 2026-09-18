@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Memeizer</string>
-    <string name="open_menu">Открыть меню</string>
     <string name="search_hint">Поиск...</string>
     <string name="home_add_folders">Добавьте папки в настройках, чтобы видеть изображения.</string>
     <string name="home_no_images">В выбранных папках нет изображений.</string>
@@ -8,7 +7,9 @@
     <string name="home_no_results">Ничего не найдено.</string>
     <string name="settings">Настройки</string>
     <string name="folders">Папки</string>
-    <string name="back_to_search">Назад к поиску</string>
+    <string name="back_to_settings">Назад к настройкам</string>
+    <string name="search">Поиск</string>
+    <string name="folders_description">Выберите папки с изображениями</string>
     <string name="add_folder">Добавить папку</string>
     <string name="reindex_now">Переиндексировать</string>
     <string name="no_folders">Папки ещё не добавлены.</string>

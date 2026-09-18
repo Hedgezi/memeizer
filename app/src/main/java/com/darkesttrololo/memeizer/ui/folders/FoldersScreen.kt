@@ -49,12 +49,11 @@ fun FoldersScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back_to_search),
+                            contentDescription = stringResource(R.string.back_to_settings),
                         )
                     }
-                    Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineSmall)
+                    Text(stringResource(R.string.folders), style = MaterialTheme.typography.headlineSmall)
                 }
-                Text(stringResource(R.string.folders), style = MaterialTheme.typography.titleMedium)
                 state.error?.let { error ->
                     Text(
                         stringResource(
