@@ -18,12 +18,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkesttrololo.memeizer.R
 
 @Composable
-fun SettingsScreen(onOpenFolders: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+fun SettingsScreen(
+    onOpenFolders: () -> Unit,
+    bottomContentPadding: Dp = 0.dp,
+) {
+    Column(
+        Modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = bottomContentPadding),
+    ) {
         Text(
             text = stringResource(R.string.settings),
             style = MaterialTheme.typography.headlineLarge,

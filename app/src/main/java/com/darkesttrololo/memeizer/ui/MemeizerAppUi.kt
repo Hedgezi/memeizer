@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,6 +33,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -60,6 +63,11 @@ fun MemeizerAppUi(container: AppContainer) {
     var selectedScreen by rememberSaveable { mutableStateOf(Screen.Search) }
     val context = LocalContext.current
     val galleryState = rememberLazyGridState()
+    val showNavigation = selectedScreen != Screen.Folders && !WindowInsets.isImeVisible
+    var navigationHeightPx by remember { mutableIntStateOf(0) }
+    val navigationPadding = with(LocalDensity.current) {
+        if (showNavigation) navigationHeightPx.toDp() else 0.dp
+    }
     val foldersViewModel: FoldersViewModel = viewModel(
         factory = FoldersViewModel.factory(container),
     )
@@ -82,19 +90,21 @@ fun MemeizerAppUi(container: AppContainer) {
 
     // Inset padding consumes safe areas before IME padding, avoiding duplicate bottom insets.
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
+        Box(
             modifier = Modifier.fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .imePadding(),
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (selectedScreen) {
                     Screen.Search -> HomeScreen(
                         viewModel = homeViewModel,
                         paddingValues = PaddingValues(0.dp),
                         gridState = galleryState,
+                        bottomContentPadding = navigationPadding,
                     )
                     Screen.Settings -> SettingsScreen(
+                        bottomContentPadding = navigationPadding,
                         onOpenFolders = { selectedScreen = Screen.Folders },
                     )
                     Screen.Folders -> FoldersScreen(
@@ -105,11 +115,12 @@ fun MemeizerAppUi(container: AppContainer) {
                     )
                 }
             }
-            if (selectedScreen != Screen.Folders && !WindowInsets.isImeVisible) {
+            if (showNavigation) {
                 FloatingNavigation(
                     selectedScreen = selectedScreen,
                     onSelect = { selectedScreen = it },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                        .onSizeChanged { navigationHeightPx = it.height }
                         .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 )
             }

@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -36,6 +37,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     paddingValues: PaddingValues,
     gridState: LazyGridState,
+    bottomContentPadding: Dp = 0.dp,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val viewerSession by viewModel.viewerSession.collectAsStateWithLifecycle()
@@ -67,7 +69,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     state = gridState,
                     columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp + bottomContentPadding),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
