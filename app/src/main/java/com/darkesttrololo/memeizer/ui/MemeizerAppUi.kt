@@ -25,8 +25,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.darkesttrololo.memeizer.data.AppContainer
+import com.darkesttrololo.memeizer.R
 import com.darkesttrololo.memeizer.ui.folders.FoldersScreen
 import com.darkesttrololo.memeizer.ui.folders.FoldersViewModel
 import com.darkesttrololo.memeizer.ui.home.HomeScreen
@@ -66,7 +68,7 @@ fun MemeizerAppUi(container: AppContainer) {
                         coroutineScope.launch { drawerState.close() }
                     },
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    label = { Text("Settings") },
+                    label = { Text(stringResource(R.string.settings)) },
                 )
             }
         },

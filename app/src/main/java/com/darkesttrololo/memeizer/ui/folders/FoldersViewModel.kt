@@ -16,15 +16,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class FoldersViewModel(private val container: AppContainer) : ViewModel() {
-    private val errorMessage = MutableStateFlow<String?>(null)
+    private val error = MutableStateFlow<FolderError?>(null)
     val uiState: StateFlow<FoldersUiState> = combine(
-        container.folderRepository.observeFolders(), errorMessage,
-    ) { folders, error -> FoldersUiState(folders = folders, errorMessage = error) }
+        container.folderRepository.observeFolders(), error,
+    ) { folders, currentError -> FoldersUiState(folders = folders, error = currentError) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FoldersUiState())
 
     fun addFolder(uri: Uri) {
         viewModelScope.launch {
-            errorMessage.value = null
+            error.value = null
             try {
                 container.folderRepository.addFolder(uri, uri.lastPathSegment ?: uri.toString())
                 container.indexScheduler.schedulePeriodicIndexing()
@@ -32,9 +32,9 @@ class FoldersViewModel(private val container: AppContainer) : ViewModel() {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: OverlappingFolderException) {
-                errorMessage.value = "This folder is already selected, contains a selected folder, or is inside one."
+                error.value = FolderError.OverlappingFolder
             } catch (_: Exception) {
-                errorMessage.value = "Could not check or add this folder. Check access and try again."
+                error.value = FolderError.CannotAddFolder
             }
         }
     }
@@ -59,5 +59,10 @@ class FoldersViewModel(private val container: AppContainer) : ViewModel() {
 
 data class FoldersUiState(
     val folders: List<IndexedFolderEntity> = emptyList(),
-    val errorMessage: String? = null,
+    val error: FolderError? = null,
 )
+
+enum class FolderError {
+    OverlappingFolder,
+    CannotAddFolder,
+}

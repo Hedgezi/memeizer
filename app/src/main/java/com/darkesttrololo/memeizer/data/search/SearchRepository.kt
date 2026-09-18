@@ -38,7 +38,7 @@ class SearchRepository(private val searchDao: SearchDao) {
         .joinToString(separator = " ") { "$it*" }
 
     private companion object {
-        const val GALLERY_LIMIT = 500
+        const val GALLERY_LIMIT = 100
         const val SEARCH_LIMIT = 100
     }
 }

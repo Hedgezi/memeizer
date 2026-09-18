@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Memeizer</string>
+    <string name="open_menu">Открыть меню</string>
+    <string name="search_hint">Поиск...</string>
+    <string name="home_add_folders">Добавьте папки в настройках, чтобы видеть изображения.</string>
+    <string name="home_no_images">В выбранных папках нет изображений.</string>
+    <string name="home_indexing_error">Не удалось загрузить изображения. Проверьте доступ к папкам и повторите индексацию в настройках.</string>
+    <string name="home_no_results">Ничего не найдено.</string>
+    <string name="settings">Настройки</string>
+    <string name="folders">Папки</string>
+    <string name="back_to_search">Назад к поиску</string>
+    <string name="add_folder">Добавить папку</string>
+    <string name="reindex_now">Переиндексировать</string>
+    <string name="no_folders">Папки ещё не добавлены.</string>
+    <string name="remove">Удалить</string>
+    <string name="folder_error_overlap">Эта папка уже выбрана, содержит выбранную папку или находится внутри неё.</string>
+    <string name="folder_error_add">Не удалось проверить или добавить папку. Проверьте доступ и повторите попытку.</string>
+    <string name="viewer_close">Закрыть</string>
+    <string name="viewer_counter">%1$d / %2$d</string>
+    <string name="viewer_open">Открыть</string>
+    <string name="viewer_share">Поделиться</string>
+    <string name="viewer_info">Информация</string>
+    <string name="viewer_filename">Имя файла</string>
+    <string name="viewer_ocr">Распознанный текст</string>
+    <string name="viewer_format">Формат</string>
+    <string name="viewer_size">Размер файла</string>
+    <string name="viewer_modified">Дата изменения</string>
+    <string name="viewer_unknown">Нет данных</string>
+    <string name="viewer_no_text">Нет распознанного текста</string>
+    <string name="viewer_unavailable">Не удалось загрузить изображение. Возможно, файл удалён или доступ к папке потерян.</string>
+    <string name="viewer_action_failed">Не удалось открыть или отправить изображение. Проверьте доступность файла и наличие подходящего приложения.</string>
+    <string name="viewer_zoom">Масштаб: %1$d%%</string>
+</resources>

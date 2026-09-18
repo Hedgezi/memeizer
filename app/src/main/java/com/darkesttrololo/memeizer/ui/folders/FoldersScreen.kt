@@ -22,8 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.darkesttrololo.memeizer.R
 
 @Composable
 fun FoldersScreen(
@@ -45,18 +47,29 @@ fun FoldersScreen(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back_to_search),
+                        )
                     }
-                    Text("Settings", style = MaterialTheme.typography.headlineSmall)
+                    Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineSmall)
                 }
-                Text("Folders", style = MaterialTheme.typography.titleMedium)
-                state.errorMessage?.let { message ->
-                    Text(message, color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.folders), style = MaterialTheme.typography.titleMedium)
+                state.error?.let { error ->
+                    Text(
+                        stringResource(
+                            when (error) {
+                                FolderError.OverlappingFolder -> R.string.folder_error_overlap
+                                FolderError.CannotAddFolder -> R.string.folder_error_add
+                            },
+                        ),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onAddFolder) { Text("Add folder") }
+                    Button(onClick = onAddFolder) { Text(stringResource(R.string.add_folder)) }
                     OutlinedButton(onClick = { viewModel.startIndexing(replace = true, forceReindex = true) }) {
-                        Text("Reindex now")
+                        Text(stringResource(R.string.reindex_now))
                     }
                 }
             }
@@ -64,7 +77,7 @@ fun FoldersScreen(
 
         if (state.folders.isEmpty()) {
             item {
-                Text("No folders yet.")
+                Text(stringResource(R.string.no_folders))
             }
         }
 
@@ -77,7 +90,7 @@ fun FoldersScreen(
                     Text(folder.displayName, style = MaterialTheme.typography.titleMedium)
                     Text(folder.treeUri, style = MaterialTheme.typography.bodySmall)
                     OutlinedButton(onClick = { viewModel.removeFolder(folder.id) }) {
-                        Text("Remove")
+                        Text(stringResource(R.string.remove))
                     }
                 }
             }
