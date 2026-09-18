@@ -23,16 +23,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.darkesttrololo.memeizer.data.search.SearchResult
 
 @Composable
 fun HomeScreen(
@@ -41,7 +37,7 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedResult by remember { mutableStateOf<SearchResult?>(null) }
+    val viewerSession by viewModel.viewerSession.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -84,7 +80,7 @@ fun HomeScreen(
             }
 
             items(state.results, key = { it.imageId }) { result ->
-                Card(modifier = Modifier.clickable { selectedResult = result }) {
+                Card(modifier = Modifier.clickable { viewModel.openViewer(result) }) {
                     AsyncImage(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -98,7 +94,11 @@ fun HomeScreen(
         }
     }
 
-    selectedResult?.let { result ->
-        MemePreviewDialog(result = result, onDismiss = { selectedResult = null })
+    viewerSession?.let { session ->
+        MemePreviewDialog(
+            session = session,
+            onPageChanged = viewModel::selectViewerPage,
+            onDismiss = viewModel::closeViewer,
+        )
     }
 }

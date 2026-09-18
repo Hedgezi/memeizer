@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">Memeizer</string>
+    <string name="viewer_close">Закрыть</string>
+    <string name="viewer_counter">%1$d / %2$d</string>
+    <string name="viewer_open">Открыть</string>
+    <string name="viewer_share">Поделиться</string>
+    <string name="viewer_info">Информация</string>
+    <string name="viewer_filename">Имя файла</string>
+    <string name="viewer_ocr">Распознанный текст</string>
+    <string name="viewer_format">Формат</string>
+    <string name="viewer_size">Размер файла</string>
+    <string name="viewer_modified">Дата изменения</string>
+    <string name="viewer_unknown">Нет данных</string>
+    <string name="viewer_no_text">Нет распознанного текста</string>
+    <string name="viewer_unavailable">Не удалось загрузить изображение. Возможно, файл удалён или доступ к папке потерян.</string>
+    <string name="viewer_action_failed">Не удалось открыть или отправить изображение. Проверьте доступность файла и наличие подходящего приложения.</string>
+    <string name="viewer_zoom">Масштаб: %1$d%%</string>
 </resources>

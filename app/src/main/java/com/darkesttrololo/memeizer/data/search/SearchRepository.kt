@@ -24,6 +24,9 @@ class SearchRepository(private val searchDao: SearchDao) {
                     uri = row.uri,
                     displayName = row.displayName,
                     text = row.text,
+                    mimeType = row.mimeType,
+                    size = row.size,
+                    lastModified = row.lastModified,
                 )
             }
         }
@@ -45,4 +48,7 @@ data class SearchResult(
     val uri: String,
     val displayName: String,
     val text: String,
+    val mimeType: String?,
+    val size: Long?,
+    val lastModified: Long?,
 )

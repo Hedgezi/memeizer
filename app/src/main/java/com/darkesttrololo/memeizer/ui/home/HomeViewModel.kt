@@ -30,6 +30,24 @@ class HomeViewModel(container: AppContainer) : ViewModel() {
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
+    private val _viewerSession = MutableStateFlow<ViewerSession?>(null)
+    val viewerSession: StateFlow<ViewerSession?> = _viewerSession
+
+    fun openViewer(result: SearchResult) {
+        val snapshot = uiState.value.results.toList()
+        val page = snapshot.indexOfFirst { it.imageId == result.imageId }
+        if (page >= 0) _viewerSession.value = ViewerSession(snapshot, page)
+    }
+
+    fun selectViewerPage(page: Int) {
+        val session = _viewerSession.value ?: return
+        if (page in session.results.indices) _viewerSession.value = session.copy(page = page)
+    }
+
+    fun closeViewer() {
+        _viewerSession.value = null
+    }
+
     fun onQueryChanged(value: String) {
         query.value = value
     }
@@ -47,3 +65,5 @@ data class HomeUiState(
     val results: List<SearchResult> = emptyList(),
     val indexedImageCount: Int = 0,
 )
+
+data class ViewerSession(val results: List<SearchResult>, val page: Int)

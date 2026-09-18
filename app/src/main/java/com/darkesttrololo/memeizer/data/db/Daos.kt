@@ -77,7 +77,8 @@ interface SearchDao {
 
     @Query(
         """
-        SELECT indexed_images.id, indexed_images.uri, indexed_images.display_name AS displayName, meme_search_fts.text
+        SELECT indexed_images.id, indexed_images.uri, indexed_images.display_name AS displayName,
+            indexed_images.mime_type AS mimeType, indexed_images.size, indexed_images.last_modified AS lastModified, meme_search_fts.text
         FROM meme_search_fts
         JOIN indexed_images ON indexed_images.id = meme_search_fts.image_id
         WHERE meme_search_fts.text MATCH :query AND indexed_images.active = 1 AND indexed_images.index_status = 'INDEXED'
@@ -89,7 +90,8 @@ interface SearchDao {
 
     @Query(
         """
-        SELECT indexed_images.id, indexed_images.uri, indexed_images.display_name AS displayName, COALESCE(meme_search_fts.text, '') AS text
+        SELECT indexed_images.id, indexed_images.uri, indexed_images.display_name AS displayName,
+            indexed_images.mime_type AS mimeType, indexed_images.size, indexed_images.last_modified AS lastModified, COALESCE(meme_search_fts.text, '') AS text
         FROM indexed_images
         LEFT JOIN meme_search_fts ON indexed_images.id = meme_search_fts.image_id
         WHERE indexed_images.active = 1
@@ -105,4 +107,7 @@ data class SearchResultRow(
     val uri: String,
     val displayName: String,
     val text: String,
+    val mimeType: String?,
+    val size: Long?,
+    val lastModified: Long?,
 )
