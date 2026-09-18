@@ -413,7 +413,12 @@ JNIEXPORT jobject JNICALL Java_com_equationl_ncnnandroidppocr_cpp_OCRNative_dete
     double endTime = ncnn::get_current_time();
     jlong inferenceTime = (jlong)(endTime - startTime);
 
-    __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "detectBitmap: detected %zu objects in %lld ms", objects.size(), inferenceTime);
+    __android_log_print(
+            ANDROID_LOG_DEBUG,
+            "ncnn",
+            "detectBitmap: detected %zu objects in %lld ms",
+            objects.size(),
+            static_cast<long long>(inferenceTime));
 
     return createOcrResult(env, objects, inferenceTime);
 }
