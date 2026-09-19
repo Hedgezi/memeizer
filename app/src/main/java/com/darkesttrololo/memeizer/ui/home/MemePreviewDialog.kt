@@ -49,7 +49,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -101,6 +100,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.darkesttrololo.memeizer.R
 import com.darkesttrololo.memeizer.data.search.SearchResult
+import com.darkesttrololo.memeizer.ui.theme.MemeizerTheme
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.abs
@@ -273,7 +273,7 @@ fun MemePreviewDialog(
             controller.isAppearanceLightNavigationBars = false
             onDispose { }
         }
-        MaterialTheme(colorScheme = darkColorScheme()) {
+        MemeizerTheme(darkTheme = true) {
             Box(Modifier.fillMaxSize().background(Color(0xFF101010).copy(alpha = 1f - motion.dismiss))) {
                 Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                     Row(
@@ -281,12 +281,16 @@ fun MemePreviewDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = motion::close) {
-                            Icon(Icons.Default.Close, stringResource(R.string.viewer_close), tint = Color.White)
+                            Icon(
+                                Icons.Default.Close,
+                                stringResource(R.string.viewer_close),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
                         }
                         Text(
                             stringResource(R.string.viewer_counter, pager.currentPage + 1, session.results.size),
                             modifier = Modifier.weight(1f).padding(end = 48.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -366,7 +370,12 @@ fun MemePreviewDialog(
                                         motion, { true }, { latestPanelPx }, { latestHeightPx }, velocityThreshold,
                                     ), contentAlignment = Alignment.Center,
                                 ) {
-                                    Box(Modifier.width(32.dp).height(4.dp).background(Color.Gray, RoundedCornerShape(2.dp)))
+                                    Box(
+                                        Modifier.width(32.dp).height(4.dp).background(
+                                            MaterialTheme.colorScheme.onSurfaceVariant,
+                                            RoundedCornerShape(2.dp),
+                                        ),
+                                    )
                                 }
                                 key(current.imageId) { ImageInformation(current) }
                             }
@@ -496,8 +505,15 @@ private fun ZoomableImage(result: SearchResult, active: Boolean, gesturesEnabled
             },
             onError = { failed = true; loaded = false },
         )
-        if (failed) Text(stringResource(R.string.viewer_unavailable), Modifier.padding(24.dp), color = Color.White)
-        else if (!loaded) CircularProgressIndicator()
+        if (failed) {
+            Text(
+                stringResource(R.string.viewer_unavailable),
+                Modifier.padding(24.dp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        } else if (!loaded) {
+            CircularProgressIndicator()
+        }
     }
 }
 
