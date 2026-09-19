@@ -74,7 +74,23 @@ For PaddleOCR Cyrillic output, visually equivalent Latin glyphs are normalized t
 - Android NDK and CMake for the NCNN native module
 - Android 12 / API 31 or newer on the device/emulator
 
-The project currently uses Android Gradle Plugin `8.8.2`, Kotlin `2.0.21`, and KSP `2.0.21-1.0.28`. Lint uses the K2 UAST implementation required by the current Compose and AndroidX custom lint detectors; unrelated dependencies were not broadly upgraded.
+The project pins Android Gradle Plugin (AGP) `8.8.2`, Gradle `9.0.0`,
+Kotlin `2.0.21`, and KSP `2.0.21-1.0.28`.
+
+- Compose lint checks [require AGP/Lint 8.8.2 or newer](https://developer.android.com/jetpack/androidx/releases/compose-runtime#1.9.0).
+  Reverting AGP to `8.7.3` would require upgrading Lint separately.
+  With the current dependencies, AGP `8.7.3` reproduces an
+  `IncompatibleClassChangeError` in `ComposableFlowOperatorDetector`
+  (`KaFunctionCall`: class found where an interface was expected).
+- Gradle `8.10.2` is the [minimum and default version for AGP 8.8](https://developer.android.com/build/releases/agp-8-8-0-release-notes#compatibility).
+  The wrapper uses Gradle `9.0.0`, which passed local debug assembly, lint,
+  and JVM tests with AGP `8.8.2` and JDK 17.
+- Lint explicitly selects K2 UAST via `android.lint.useK2Uast=true`.
+  This is separate from the Kotlin compiler version.
+- Kotlin `2.0.21` is retained with its matching Compose compiler plugin and KSP.
+  Gradle `9.0.0` and AGP `8.8.2` are outside its [fully supported range](https://kotlinlang.org/docs/gradle-configure-project.html).
+  Successful local builds do not extend that support range; a future Kotlin upgrade
+  should update and validate the compiler, Compose compiler plugin, and KSP together.
 
 The app version for the first release is `versionName 0.1.0` and
 `versionCode 1`. Every later release must increase `versionCode`; use the
@@ -85,8 +101,23 @@ next user-facing version in `versionName` (for example, `0.1.1` or `0.2.0`).
 From the repository root:
 
 ```bash
+export JAVA_HOME=/absolute/path/to/jdk-17
+./gradlew --version
 ./gradlew assembleDebug
 ```
+
+Use the wrapper and check that `./gradlew --version` reports Gradle `9.0.0`
+and the intended JVM. On Arch Linux, a typical JDK 17 path is
+`/usr/lib/jvm/java-17-openjdk`. Configure Android Studio's **Gradle JDK**
+separately: the IDE and terminal can otherwise use different Java versions.
+`sourceCompatibility` and `jvmTarget` control compilation targets, not the JVM
+that launches Gradle.
+
+Do not launch this wrapper with a system JDK 26: [Gradle requires 9.4.0 or
+newer to run on Java 26](https://docs.gradle.org/current/userguide/compatibility.html#java_runtime).
+An unsupported JVM can fail during configuration with only a Java version
+string such as `26.0.2.1`. Select JDK 17 instead of changing Gradle
+just to match the system Java installation.
 
 The debug APK is written to:
 
@@ -183,7 +214,9 @@ The release description for `v0.1.0` is kept in
 [`RELEASE_NOTES_v0.1.0.md`](RELEASE_NOTES_v0.1.0.md). GitHub upload is manual;
 this repository does not add GitHub Actions.
 
-If you use the Android Studio bundled JBR directly:
+If you use the Android Studio bundled JBR directly, check its Java version
+first; JBR 17 or 21 is compatible with Gradle `9.0.0`, but newer
+Android Studio installations may bundle a different JVM:
 
 ```bash
 JAVA_HOME="/path/to/android-studio/jbr" ./gradlew assembleDebug
