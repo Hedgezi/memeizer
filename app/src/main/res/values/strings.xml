@@ -31,4 +31,5 @@
     <string name="viewer_unavailable">Could not load the image. The file may have been deleted or folder access may have been lost.</string>
     <string name="viewer_action_failed">Could not open or share the image. Check that the file is available and a suitable app is installed.</string>
     <string name="viewer_zoom">Zoom: %1$d%%</string>
+    <string name="viewer_show_info">Show information</string>
 </resources>

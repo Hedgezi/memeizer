@@ -31,4 +31,5 @@
     <string name="viewer_unavailable">Не удалось загрузить изображение. Возможно, файл удалён или доступ к папке потерян.</string>
     <string name="viewer_action_failed">Не удалось открыть или отправить изображение. Проверьте доступность файла и наличие подходящего приложения.</string>
     <string name="viewer_zoom">Масштаб: %1$d%%</string>
+    <string name="viewer_show_info">Показать информацию</string>
 </resources>
