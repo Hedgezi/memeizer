@@ -56,6 +56,7 @@ import com.darkesttrololo.memeizer.ui.folders.FoldersViewModel
 import com.darkesttrololo.memeizer.ui.home.HomeScreen
 import com.darkesttrololo.memeizer.ui.home.HomeViewModel
 import com.darkesttrololo.memeizer.ui.settings.SettingsScreen
+import com.darkesttrololo.memeizer.ui.settings.SettingsViewModel
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -104,6 +105,7 @@ fun MemeizerAppUi(container: AppContainer) {
                         bottomContentPadding = navigationPadding,
                     )
                     Screen.Settings -> SettingsScreen(
+                        viewModel = viewModel(factory = SettingsViewModel.factory(container)),
                         bottomContentPadding = navigationPadding,
                         onOpenFolders = { selectedScreen = Screen.Folders },
                     )

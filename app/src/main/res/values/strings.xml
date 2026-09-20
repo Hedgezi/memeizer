@@ -6,6 +6,12 @@
     <string name="home_indexing_error">Could not load images. Check folder access and try reindexing in Settings.</string>
     <string name="home_no_results">No results found.</string>
     <string name="settings">Settings</string>
+    <string name="auto_indexing">Automatic indexing</string>
+    <string name="indexing_economical">Economical</string>
+    <string name="indexing_active">Active</string>
+    <string name="indexing_economical_description">Once a day, while charging and idle. Saves battery.</string>
+    <string name="indexing_active_description">About once an hour, without waiting for charging or idle time. May use more battery.</string>
+    <string name="indexing_schedule_note">Android may delay background indexing. Both modes wait when the battery or storage is low.</string>
     <string name="folders">Folders</string>
     <string name="back_to_settings">Back to settings</string>
     <string name="search">Search</string>

@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
-class IndexScheduler(context: Context) {
+class IndexScheduler(context: Context, private val settings: IndexingSettings = IndexingSettings(context)) {
     private val appContext = context.applicationContext
     private val workManager by lazy { WorkManager.getInstance(appContext) }
 
@@ -33,8 +33,9 @@ class IndexScheduler(context: Context) {
     }
 
     fun schedulePeriodicIndexing() {
-        val request = PeriodicWorkRequestBuilder<IndexWorker>(24, TimeUnit.HOURS)
-            .setConstraints(backgroundIndexingConstraints())
+        val mode = settings.mode.value
+        val request = PeriodicWorkRequestBuilder<IndexWorker>(mode.intervalHours, TimeUnit.HOURS)
+            .setConstraints(backgroundIndexingConstraints(mode))
             .setInputData(workDataOf(IndexWorker.KEY_FORCE_REINDEX to false))
             .build()
 
@@ -59,11 +60,11 @@ class IndexScheduler(context: Context) {
         )
     }
 
-    private fun backgroundIndexingConstraints(): Constraints = Constraints.Builder()
-        .setRequiresCharging(true)
+    private fun backgroundIndexingConstraints(mode: IndexingMode): Constraints = Constraints.Builder()
+        .setRequiresCharging(mode == IndexingMode.ECONOMICAL)
         .setRequiresBatteryNotLow(true)
         .setRequiresStorageNotLow(true)
-        .setRequiresDeviceIdle(true)
+        .setRequiresDeviceIdle(mode == IndexingMode.ECONOMICAL)
         .build()
 
     private fun nextSequence(): Long = sequence.updateAndGet { previous ->
