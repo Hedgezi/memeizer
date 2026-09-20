@@ -64,7 +64,7 @@ class IndexScheduler(context: Context, private val settings: IndexingSettings = 
         .setRequiresCharging(mode == IndexingMode.ECONOMICAL)
         .setRequiresBatteryNotLow(true)
         .setRequiresStorageNotLow(true)
-        .setRequiresDeviceIdle(mode == IndexingMode.ECONOMICAL)
+        .setRequiresDeviceIdle(true)
         .build()
 
     private fun nextSequence(): Long = sequence.updateAndGet { previous ->

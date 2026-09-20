@@ -10,7 +10,7 @@
     <string name="indexing_economical">Экономный</string>
     <string name="indexing_active">Активный</string>
     <string name="indexing_economical_description">Раз в сутки, на зарядке и в простое. Экономит батарею.</string>
-    <string name="indexing_active_description">Примерно раз в час, без ожидания зарядки и простоя. Может расходовать больше батареи.</string>
+    <string name="indexing_active_description">Примерно раз в 6 часов в простое, в том числе без зарядки.</string>
     <string name="indexing_schedule_note">Android может откладывать фоновую индексацию. Оба режима ждут при низком заряде или нехватке места.</string>
     <string name="folders">Папки</string>
     <string name="back_to_settings">Назад к настройкам</string>
@@ -38,4 +38,5 @@
     <string name="viewer_action_failed">Не удалось открыть или отправить изображение. Проверьте доступность файла и наличие подходящего приложения.</string>
     <string name="viewer_zoom">Масштаб: %1$d%%</string>
     <string name="viewer_show_info">Показать информацию</string>
+    <string name="auto_indexing_description">Выберите, когда проверять папки на новые изображения</string>
 </resources>

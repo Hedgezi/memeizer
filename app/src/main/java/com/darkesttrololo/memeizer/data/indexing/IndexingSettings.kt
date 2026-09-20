@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class IndexingMode(val intervalHours: Long) {
     ECONOMICAL(24),
-    ACTIVE(1),
+    ACTIVE(6),
 }
 
 class IndexingSettings(context: Context) {

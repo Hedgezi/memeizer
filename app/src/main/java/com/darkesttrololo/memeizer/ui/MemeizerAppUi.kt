@@ -55,6 +55,7 @@ import com.darkesttrololo.memeizer.ui.folders.FoldersScreen
 import com.darkesttrololo.memeizer.ui.folders.FoldersViewModel
 import com.darkesttrololo.memeizer.ui.home.HomeScreen
 import com.darkesttrololo.memeizer.ui.home.HomeViewModel
+import com.darkesttrololo.memeizer.ui.settings.IndexingSettingsScreen
 import com.darkesttrololo.memeizer.ui.settings.SettingsScreen
 import com.darkesttrololo.memeizer.ui.settings.SettingsViewModel
 
@@ -64,7 +65,8 @@ fun MemeizerAppUi(container: AppContainer) {
     var selectedScreen by rememberSaveable { mutableStateOf(Screen.Search) }
     val context = LocalContext.current
     val galleryState = rememberLazyGridState()
-    val showNavigation = selectedScreen != Screen.Folders && !WindowInsets.isImeVisible
+    val isSettingsDetail = selectedScreen == Screen.Folders || selectedScreen == Screen.Indexing
+    val showNavigation = !isSettingsDetail && !WindowInsets.isImeVisible
     var navigationHeightPx by remember { mutableIntStateOf(0) }
     val navigationPadding = with(LocalDensity.current) {
         if (showNavigation) navigationHeightPx.toDp() else 0.dp
@@ -86,7 +88,7 @@ fun MemeizerAppUi(container: AppContainer) {
     }
 
     BackHandler(enabled = selectedScreen != Screen.Search) {
-        selectedScreen = if (selectedScreen == Screen.Folders) Screen.Settings else Screen.Search
+        selectedScreen = if (isSettingsDetail) Screen.Settings else Screen.Search
     }
 
     // Inset padding consumes safe areas before IME padding, avoiding duplicate bottom insets.
@@ -105,9 +107,13 @@ fun MemeizerAppUi(container: AppContainer) {
                         bottomContentPadding = navigationPadding,
                     )
                     Screen.Settings -> SettingsScreen(
-                        viewModel = viewModel(factory = SettingsViewModel.factory(container)),
                         bottomContentPadding = navigationPadding,
                         onOpenFolders = { selectedScreen = Screen.Folders },
+                        onOpenIndexing = { selectedScreen = Screen.Indexing },
+                    )
+                    Screen.Indexing -> IndexingSettingsScreen(
+                        viewModel = viewModel(factory = SettingsViewModel.factory(container)),
+                        onNavigateBack = { selectedScreen = Screen.Settings },
                     )
                     Screen.Folders -> FoldersScreen(
                         viewModel = foldersViewModel,
@@ -179,4 +185,5 @@ private enum class Screen {
     Search,
     Settings,
     Folders,
+    Indexing,
 }

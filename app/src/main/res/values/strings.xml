@@ -10,7 +10,7 @@
     <string name="indexing_economical">Economical</string>
     <string name="indexing_active">Active</string>
     <string name="indexing_economical_description">Once a day, while charging and idle. Saves battery.</string>
-    <string name="indexing_active_description">About once an hour, without waiting for charging or idle time. May use more battery.</string>
+    <string name="indexing_active_description">About once every 6 hours while idle, including on battery power.</string>
     <string name="indexing_schedule_note">Android may delay background indexing. Both modes wait when the battery or storage is low.</string>
     <string name="folders">Folders</string>
     <string name="back_to_settings">Back to settings</string>
@@ -38,4 +38,5 @@
     <string name="viewer_action_failed">Could not open or share the image. Check that the file is available and a suitable app is installed.</string>
     <string name="viewer_zoom">Zoom: %1$d%%</string>
     <string name="viewer_show_info">Show information</string>
+    <string name="auto_indexing_description">Choose when to check folders for new images</string>
 </resources>
