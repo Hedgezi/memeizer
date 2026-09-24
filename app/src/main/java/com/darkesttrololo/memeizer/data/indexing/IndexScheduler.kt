@@ -33,7 +33,7 @@ class IndexScheduler(context: Context) {
     }
 
     fun schedulePeriodicIndexing() {
-        val request = PeriodicWorkRequestBuilder<IndexWorker>(24, TimeUnit.HOURS)
+        val request = PeriodicWorkRequestBuilder<IndexWorker>(1, TimeUnit.HOURS)
             .setConstraints(backgroundIndexingConstraints())
             .setInputData(workDataOf(IndexWorker.KEY_FORCE_REINDEX to false))
             .build()
