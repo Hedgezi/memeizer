@@ -58,6 +58,117 @@ class IndexRegressionTest {
         it.moveToFirst(); it.getInt(0)
     }
 
+
+    @Test fun forcedCallbackRunsOnceUnderMutexBeforeScanningEvenWithMultipleFolders() = runBlocking {
+        add()
+        add(Uri.parse("content://test/tree/other"))
+        var callbacks = 0
+        var scans = 0
+        val repository = IndexRepository(db, { uri ->
+            assertTrue(db.indexingMutex.isLocked)
+            if (scans >= 2) assertEquals(1, callbacks)
+            scans++
+            snapshots[uri.toString()].orEmpty()
+        }, listOf(engine), onForcedReindex = {
+            assertTrue(db.indexingMutex.isLocked)
+            assertEquals(2, scans)
+            callbacks++
+        })
+        repository.indexSelectedFolders(false)
+        assertEquals(0, callbacks)
+        repository.indexSelectedFolders(true)
+        assertEquals(1, callbacks)
+        assertEquals(4, scans)
+    }
+
+    @Test fun forcedCallbackWaitsForAcceptanceAndPropagatesSchedulingFailureBeforeScan() = runBlocking {
+        add()
+        var callbacks = 0
+        var scans = 0
+        val entered = CompletableDeferred<Unit>()
+        val accepted = CompletableDeferred<Unit>()
+        val repository = IndexRepository(db, { uri ->
+            scans++
+            snapshots[uri.toString()].orEmpty()
+        }, listOf(engine), onForcedReindex = {
+            callbacks++
+            if (callbacks == 1) throw IOException("synthetic scheduler failure")
+            entered.complete(Unit)
+            accepted.await()
+        })
+        try {
+            repository.indexSelectedFolders(true)
+            fail("Scheduling failure must reach IndexWorker")
+        } catch (_: IOException) { }
+        assertEquals(0, scans)
+        val job = launch { repository.indexSelectedFolders(true) }
+        withTimeout(10_000) { entered.await() }
+        assertEquals(0, scans)
+        accepted.complete(Unit)
+        job.join()
+        assertEquals(1, scans)
+        assertEquals(2, callbacks)
+        assertEquals(1, search("cat*").size)
+    }
+
+    @Test fun forcedReindexRecoversPendingAfterSchedulerFailureAndRetainsReadyVectors() = runBlocking {
+        add()
+        snapshots[parent.toString()] = listOf(image(name = "failed"), image(name = "ready"))
+        repository().indexSelectedFolders(false)
+        val images = db.searchDao().observeGallery(100).first()
+        val failed = images.first { it.displayName == "failed" }.id
+        val ready = images.first { it.displayName == "ready" }.id
+        val vector = com.darkesttrololo.memeizer.data.clip.ClipVectors.encode(floatArrayOf(1f, 0f))
+        for ((id, status) in listOf(failed to "FAILED", ready to "READY")) {
+            db.clipDao().save(ClipEmbeddingEntity(id, "test", db.imageDao().findById(id)!!.contentKey,
+                2, if (status == "READY") vector else null, status, if (status == "FAILED") "test failure" else null, 1))
+        }
+        val clipEngine = object : com.darkesttrololo.memeizer.data.clip.ClipEmbeddingEngine {
+            override val modelVersion = "test"
+            override val dimension = 2
+            override suspend fun initialize() = Unit
+            override suspend fun embedImage(uri: Uri): FloatArray {
+                assertEquals(db.imageDao().findById(failed)!!.uri, uri.toString())
+                return floatArrayOf(1f, 0f)
+            }
+            override suspend fun embedText(text: String) = floatArrayOf(1f, 0f)
+        }
+        val clip = com.darkesttrololo.memeizer.data.clip.ClipRepository(db, clipEngine)
+        var schedules = 0
+        var ocrCalls = 0
+        recognize = { ocrCalls++; "updated OCR" }
+        val index = IndexRepository(db, { scan(it) }, listOf(engine), onForcedReindex = {
+            clip.retryFailedImages {
+                if (++schedules == 1) throw IOException("synthetic scheduler failure")
+            }
+        })
+        index.indexSelectedFolders(false)
+        assertEquals(ClipProgress(2, 1, 1), clip.progress.first())
+        assertEquals(0, schedules)
+        assertEquals(0, ocrCalls)
+        try { index.indexSelectedFolders(true); fail("Scheduling failure must propagate") } catch (_: IOException) { }
+        assertEquals(ClipProgress(2, 1, 0), clip.progress.first())
+        assertEquals(failed, db.clipDao().pending("test").single().image.id)
+        assertEquals(0, ocrCalls)
+        index.indexSelectedFolders(true)
+        assertEquals(2, schedules) // No FAILED rows remain, but PENDING must still be submitted.
+        assertEquals(2, ocrCalls)
+        assertFalse(clip.indexBatch())
+        assertEquals(ClipProgress(2, 2, 0), clip.progress.first())
+        assertArrayEquals(vector, db.clipDao().vectors("test", 0).first { it.image.id == ready }.vector)
+        assertEquals(2, search("updated*").size)
+    }
+
+    @Test fun forcedCallbackRunsOnceEvenWithoutSelectedFolders() = runBlocking {
+        var calls = 0
+        val repository = IndexRepository(db, { error("No folders to scan") }, emptyList(),
+            onForcedReindex = { calls++ })
+        repository.indexSelectedFolders(false)
+        assertEquals(0, calls)
+        repository.indexSelectedFolders(true)
+        assertEquals(1, calls)
+    }
+
     @Test fun removingFolderHidesImagesAndReaddingReusesCachedOcr() = runBlocking {
         add()
         repository().indexSelectedFolders(false)

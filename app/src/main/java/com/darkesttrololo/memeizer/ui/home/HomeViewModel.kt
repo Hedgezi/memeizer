@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -29,14 +27,10 @@ class HomeViewModel(container: AppContainer) : ViewModel() {
     private val mode = MutableStateFlow(SearchMode.TEXT)
     private val request = combine(query, mode) { query, mode -> SearchRequest(query, mode) }
     private val results = homeSearchSnapshots(request, container.searchRepository::search)
-    private val retry = SemanticRetry(
-        workIsLoading = { container.indexScheduler.clipWorkState.first().isLoading },
-        submit = { container.clipRepository.retryFailedImages(container.indexScheduler::enqueueClipIndexingAndAwait) },
-    )
     private val semanticState = combine(
         container.clipRepository.progress, container.clipRepository.modelError,
-        container.indexScheduler.clipWorkState.onStart { emit(IndexWorkState(isLoading = true)) }, retry.state,
-    ) { progress, error, work, retry -> SemanticState(progress, error != null || work.hasFailed, work.isLoading, retry) }
+        container.indexScheduler.clipWorkState.onStart { emit(IndexWorkState(isLoading = true)) },
+    ) { progress, error, work -> SemanticState(progress, error != null || work.hasFailed) }
 
     private val folders = container.folderRepository.observeFolders()
         .map { loaded(it.size) }
@@ -72,11 +66,6 @@ class HomeViewModel(container: AppContainer) : ViewModel() {
     val uiState: StateFlow<HomeUiState> = combine(baseState, semanticState) { base, semantic ->
         base.copy(
             content = semanticContentState(base, semantic.progress, semantic.modelFailed),
-            clipProgress = semantic.progress,
-            modelFailed = base.modelFailed || semantic.modelFailed,
-            showSemanticRetry = semantic.progress.failed > 0 || semantic.retry.submitting || semantic.retry.schedulingFailed,
-            semanticRetryEnabled = !semantic.workIsLoading && !semantic.retry.submitting,
-            semanticRetryFailed = semantic.retry.schedulingFailed,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -98,10 +87,6 @@ class HomeViewModel(container: AppContainer) : ViewModel() {
         _viewerSession.value = null
     }
 
-    fun retryFailedImages() {
-        viewModelScope.launch { retry.retry() }
-    }
-
     fun onModeChanged(value: SearchMode) {
         mode.value = value
     }
@@ -121,11 +106,7 @@ class HomeViewModel(container: AppContainer) : ViewModel() {
 data class HomeUiState(
     val query: String = "",
     val mode: SearchMode = SearchMode.TEXT,
-    val clipProgress: ClipProgress = ClipProgress(),
     val modelFailed: Boolean = false,
-    val showSemanticRetry: Boolean = false,
-    val semanticRetryEnabled: Boolean = false,
-    val semanticRetryFailed: Boolean = false,
     val results: List<SearchResult> = emptyList(),
     val content: HomeContentState = HomeContentState.InitialLoading,
 )
@@ -185,8 +166,6 @@ internal data class SearchSnapshot(val request: SearchRequest, val results: List
 private data class SemanticState(
     val progress: ClipProgress,
     val modelFailed: Boolean,
-    val workIsLoading: Boolean,
-    val retry: SemanticRetryState,
 )
 private fun <T> loaded(value: T): LoadState<T> = Loaded(value)
 private fun <T> LoadState<T>.valueOrNull(): T? = (this as? Loaded)?.value

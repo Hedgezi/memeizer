@@ -21,7 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,7 +67,7 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
                 value = queryText,
                 onValueChange = { queryText = it; viewModel.onQueryChanged(it) },
-                placeholder = { Text(stringResource(if (state.mode == SearchMode.SEMANTIC) R.string.semantic_search_hint else R.string.search_hint)) },
+                placeholder = { Text(stringResource(R.string.search_hint)) },
                 singleLine = true,
             )
         }
@@ -82,32 +81,6 @@ fun HomeScreen(
             FilterChip(selected = state.mode == SearchMode.SEMANTIC, onClick = { viewModel.onModeChanged(SearchMode.SEMANTIC) },
                 label = { Text(stringResource(R.string.search_mode_semantic)) })
         }
-        if (state.mode == SearchMode.SEMANTIC) {
-            Text(
-                stringResource(R.string.semantic_english_description),
-                modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                stringResource(R.string.semantic_progress, state.clipProgress.ready, state.clipProgress.total, state.clipProgress.failed),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall,
-            )
-            if (state.showSemanticRetry) {
-                TextButton(
-                    onClick = viewModel::retryFailedImages,
-                    enabled = state.semanticRetryEnabled,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                ) { Text(stringResource(R.string.semantic_retry_failed)) }
-            }
-            if (state.semanticRetryFailed) {
-                Text(stringResource(R.string.semantic_retry_scheduling_error), modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-            if (state.modelFailed && state.content != HomeContentState.ModelError) {
-                Text(stringResource(R.string.semantic_model_error), modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when (state.content) {
                 HomeContentState.Images -> LazyVerticalGrid(

@@ -34,12 +34,7 @@
     <string name="viewer_show_info">Показать информацию</string>
     <string name="search_mode_text">По тексту</string>
     <string name="search_mode_semantic">По смыслу</string>
-    <string name="semantic_search_hint">Опишите картинку по-английски…</string>
-    <string name="semantic_english_description">Введите описание на английском. Поиск работает офлайн.</string>
-    <string name="semantic_progress">Смысловой индекс: %1$d / %2$d · ошибок: %3$d</string>
     <string name="semantic_index_not_ready">Смысловой индекс ещё не готов. Результаты появятся по мере обработки изображений.</string>
     <string name="semantic_model_error">Не удалось загрузить модель смыслового поиска. Попробуйте перезапустить приложение.</string>
     <string name="semantic_index_failed">Не удалось обработать изображения для смыслового поиска. Проверьте доступ к файлам, их формат и размер (до 4 194 304 пикселей и 4096 пикселей по каждой стороне).</string>
-    <string name="semantic_retry_failed">Повторить обработку ошибок</string>
-    <string name="semantic_retry_scheduling_error">Не удалось запланировать обработку изображений. Нажмите «Повторить обработку ошибок», чтобы попробовать снова.</string>
 </resources>

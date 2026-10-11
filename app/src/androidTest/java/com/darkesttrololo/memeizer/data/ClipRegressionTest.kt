@@ -205,7 +205,7 @@ class ClipRegressionTest {
         val repository = ClipRepository(db, engine)
         try {
             repository.retryFailedImages { throw java.io.IOException("synthetic scheduler failure") }
-            fail("Scheduling failure must reach the ViewModel")
+            fail("Scheduling failure must reach the caller")
         } catch (_: java.io.IOException) { }
         assertEquals("PENDING", embedding(failed).first)
         var scheduled = false

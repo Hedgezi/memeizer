@@ -22,6 +22,7 @@ class IndexRepository(
     private val scanner: suspend (Uri) -> List<ScannedImage>,
     private val ocrEngines: List<OcrEngine>,
     private val onFilesUpdated: () -> Unit = {},
+    private val onForcedReindex: suspend () -> Unit = {},
 ) {
     private val folderDao = database.folderDao()
     private val imageDao = database.imageDao()
@@ -32,6 +33,7 @@ class IndexRepository(
 
     suspend fun indexSelectedFolders(forceReindex: Boolean) = withContext(Dispatchers.IO) {
         database.indexingMutex.withLock {
+            if (forceReindex) onForcedReindex()
             folderDao.getEnabledFolders().forEach { folder ->
                 // If this throws (including cancellation), do not reconcile a partial snapshot.
                 val snapshot = scanner(Uri.parse(folder.treeUri))

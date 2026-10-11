@@ -38,6 +38,7 @@ class AppContainer(context: Context) {
         scanner = folderScanner::scan,
         ocrEngines = ocrEngines,
         onFilesUpdated = indexScheduler::enqueueClipIndexing,
+        onForcedReindex = { clipRepository.retryFailedImages(indexScheduler::enqueueClipIndexingAndAwait) },
     )
     val searchRepository = SearchRepository(database.searchDao(), clipRepository)
 
