@@ -38,6 +38,7 @@ class IndexWorker(
 
 class MemeizerWorkerFactory(
     private val indexRepository: IndexRepository,
+    private val clipRepository: com.darkesttrololo.memeizer.data.clip.ClipRepository,
 ) : WorkerFactory() {
     override fun createWorker(
         appContext: Context,
@@ -45,6 +46,7 @@ class MemeizerWorkerFactory(
         workerParameters: WorkerParameters,
     ): ListenableWorker? = when (workerClassName) {
         IndexWorker::class.java.name -> IndexWorker(appContext, workerParameters, indexRepository)
+        ClipIndexWorker::class.java.name -> ClipIndexWorker(appContext, workerParameters, clipRepository)
         else -> null
     }
 }

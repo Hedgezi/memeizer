@@ -1,0 +1,59 @@
+{
+  "target": "host CPU, 2 intra-op threads",
+  "variants": [
+    {
+      "model": "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+      "revision": "95ec8197b3f2fe7f747865c61ca556cf0768b2f7",
+      "precision": "fp32",
+      "encoder_bytes": 337032651,
+      "host_cold_ms": 348.8249519996316,
+      "host_text_p95_ms": 10.093843150480096,
+      "host_image_p95_ms": 14.11061665012312,
+      "text_cosine_min_to_python_fp32": 0.9999998912411324,
+      "text_max_absolute_error": 1.0356307029724121e-06,
+      "image_cosine_to_python_fp32": 0.9999999874281705
+    },
+    {
+      "model": "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+      "revision": "95ec8197b3f2fe7f747865c61ca556cf0768b2f7",
+      "precision": "int8",
+      "encoder_bytes": 165799339,
+      "host_cold_ms": 202.55790100054583,
+      "host_text_p95_ms": 3.9232497998455065,
+      "host_image_p95_ms": 5.734994950216786,
+      "text_cosine_min_to_python_fp32": 0.8969710654081682,
+      "text_max_absolute_error": 0.10399891436100006,
+      "image_cosine_to_python_fp32": 0.9933659175170128
+    },
+    {
+      "model": "openai/clip-vit-base-patch32",
+      "revision": "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+      "precision": "fp32",
+      "encoder_bytes": 605360442,
+      "host_cold_ms": 509.0128100000584,
+      "host_text_p95_ms": 17.87371974905909,
+      "host_image_p95_ms": 33.59376880061972,
+      "text_cosine_min_to_python_fp32": 0.9999999202245229,
+      "text_max_absolute_error": 2.384185791015625e-07,
+      "image_cosine_to_python_fp32": 0.9999999603476835
+    },
+    {
+      "model": "openai/clip-vit-base-patch32",
+      "revision": "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+      "precision": "int8",
+      "encoder_bytes": 235613173,
+      "host_cold_ms": 200.12379600120767,
+      "host_text_p95_ms": 7.200895350524659,
+      "host_image_p95_ms": 10.184118449978996,
+      "text_cosine_min_to_python_fp32": 0.9151251189673014,
+      "text_max_absolute_error": 0.1635735034942627,
+      "image_cosine_to_python_fp32": 0.992086965244413
+    }
+  ],
+  "quality_status": "No labeled meme dataset; hit@10 and winner selection unavailable",
+  "host": {
+    "os": "Linux-7.2.8-zen1-2-zen-x86_64-with-glibc2.44",
+    "python": "3.14.7",
+    "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor"
+  }
+}

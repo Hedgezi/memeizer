@@ -62,6 +62,18 @@ data class MemeSearchFtsEntity(
     val text: String,
 )
 
+@Entity(tableName = "clip_embeddings", primaryKeys = ["image_id", "model_version"])
+data class ClipEmbeddingEntity(
+    @ColumnInfo(name = "image_id") val imageId: Long,
+    @ColumnInfo(name = "model_version") val modelVersion: String,
+    @ColumnInfo(name = "content_key") val contentKey: String,
+    val dimension: Int,
+    val vector: ByteArray?,
+    val status: String,
+    val error: String?,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
 enum class IndexStatus {
     PENDING,
     INDEXING,

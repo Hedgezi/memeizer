@@ -32,4 +32,11 @@
     <string name="viewer_action_failed">Не удалось открыть или отправить изображение. Проверьте доступность файла и наличие подходящего приложения.</string>
     <string name="viewer_zoom">Масштаб: %1$d%%</string>
     <string name="viewer_show_info">Показать информацию</string>
+    <string name="search_mode_text">По тексту</string>
+    <string name="search_mode_semantic">По смыслу</string>
+    <string name="semantic_search_hint">Опишите картинку по-английски…</string>
+    <string name="semantic_english_description">Введите описание на английском. Поиск работает офлайн.</string>
+    <string name="semantic_progress">Смысловой индекс: %1$d / %2$d · ошибок: %3$d</string>
+    <string name="semantic_index_not_ready">Смысловой индекс ещё не готов. Результаты появятся по мере обработки изображений.</string>
+    <string name="semantic_model_error">Не удалось загрузить модель смыслового поиска. Попробуйте перезапустить приложение.</string>
 </resources>

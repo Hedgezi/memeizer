@@ -1,0 +1,6 @@
+# torch is installed separately for the host platform; the exporter records its exact version.
+transformers==4.57.3
+onnx==1.20.1
+onnxruntime==1.25.0
+ftfy==6.3.1
+Pillow==12.3.0

@@ -21,6 +21,7 @@ class IndexRepository(
     private val database: MemeizerDatabase,
     private val scanner: suspend (Uri) -> List<ScannedImage>,
     private val ocrEngines: List<OcrEngine>,
+    private val onFilesUpdated: () -> Unit = {},
 ) {
     private val folderDao = database.folderDao()
     private val imageDao = database.imageDao()
@@ -69,6 +70,7 @@ class IndexRepository(
                     }
                     pending
                 }
+                onFilesUpdated()
                 work.forEach { (id, image) -> runOcr(folder, id, image.uri) }
             }
         }

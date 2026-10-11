@@ -32,4 +32,11 @@
     <string name="viewer_action_failed">Could not open or share the image. Check that the file is available and a suitable app is installed.</string>
     <string name="viewer_zoom">Zoom: %1$d%%</string>
     <string name="viewer_show_info">Show information</string>
+    <string name="search_mode_text">By text</string>
+    <string name="search_mode_semantic">By meaning</string>
+    <string name="semantic_search_hint">Describe an image in English…</string>
+    <string name="semantic_english_description">Enter an English description. Search works offline.</string>
+    <string name="semantic_progress">Semantic index: %1$d / %2$d · failed: %3$d</string>
+    <string name="semantic_index_not_ready">The semantic index is not ready yet. Results will appear as images are processed.</string>
+    <string name="semantic_model_error">Could not load the semantic search model. Try restarting the app.</string>
 </resources>

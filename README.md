@@ -59,7 +59,7 @@ This project brings together a native Android interface, on-device text recognit
 | --- | --- |
 | An interactive image viewer | Kotlin, Jetpack Compose, and Material 3; gestures for zooming, paging, and revealing image information |
 | Reading two writing systems | PaddleOCR through NCNN and C++/JNI for Cyrillic; Google ML Kit for Latin text |
-| Searching a local collection | Room with a full-text search index (FTS), query normalization, and word-prefix matching |
+| Searching a local collection | Room FTS for recognized words; separate CLIP embeddings and exact cosine top-30 for English descriptions |
 | User-controlled file access | Android’s Storage Access Framework, persistent folder access, and overlapping-folder detection |
 | Updating without repeating all OCR | WorkManager, incremental indexing, and reuse of cached recognition results |
 | Keeping responsibilities separate | Screen state in ViewModels, data operations in repositories, Coroutines and Flow for asynchronous updates |
@@ -69,11 +69,24 @@ This project brings together a native Android interface, on-device text recognit
 
 The source currently declares version **0.2.0**. The project is under active development.
 
-Search works with recognized words, rather than the visual meaning of a scene. Small lettering, unusual fonts, and heavy image compression can reduce recognition accuracy. Initial indexing takes time, and the gallery and search results are currently limited to **100 images per view**.
+Search offers **By text** for recognized Cyrillic/Latin words and **By meaning** for
+English descriptions of a scene. Semantic search runs offline with bundled TinyCLIP
+encoders and returns up to **30** nearest images, including images without captions.
+The gallery and text search show up to **100** images per view. Both indexes update
+automatically; semantic results can be partial while the CLIP index is building.
+
+TinyCLIP FP32 is the accepted current model as of 2026-10-11. A small local retrieval
+check passed; broader comparative quality and target flagship performance remain
+unmeasured. Model replacement or a model picker is deferred until actual usage shows
+a need. See the [decision and research results](docs/CLIP_MODEL_DECISION.md) and the
+[model guide](tools/clip/README.md).
 
 ## For developers
 
 Use **JDK 17**, Android SDK platforms **35** and **33**, NDK **29.0.14206865**, and CMake. Configure your SDK path in an untracked `local.properties` file and select JDK 17 as Android Studio’s Gradle JDK.
+
+First [prepare the bundled CLIP assets](tools/clip/README.md#reproduce-the-assets).
+The large ONNX files are generated locally and included in the APK.
 
 From the repository root, with JDK 17 selected in your terminal:
 

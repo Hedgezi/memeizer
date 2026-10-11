@@ -30,6 +30,7 @@ def parse_args():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="folders, persisted grants, image counts and work states")
     search = commands.add_parser("search", help="search through the application's SearchRepository")
+    search.add_argument("--mode", choices=["text", "semantic"], default="text", help="search mode (default: text)")
     search.add_argument("query", help="use an empty string to browse the gallery")
     image = commands.add_parser("image", help="image row, OCR and FTS records")
     image.add_argument("id", type=int)
@@ -60,6 +61,8 @@ def run(args):
     payload = {}
     if args.command == "search":
         payload = {"query": args.query}
+        if args.mode != "text":
+            payload["mode"] = args.mode
     elif args.command == "image":
         if args.id <= 0:
             raise HarnessError("Image ID must be positive")

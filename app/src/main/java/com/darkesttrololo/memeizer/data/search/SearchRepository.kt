@@ -6,10 +6,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-class SearchRepository(private val searchDao: SearchDao) {
-    fun search(query: String): Flow<List<SearchResult>> {
+enum class SearchMode { TEXT, SEMANTIC }
+
+class SearchRepository(
+    private val searchDao: SearchDao,
+    private val clipRepository: com.darkesttrololo.memeizer.data.clip.ClipRepository? = null,
+) {
+    fun search(query: String, mode: SearchMode = SearchMode.TEXT): Flow<List<SearchResult>> {
         val normalized = query.lowercase().trim()
         if (normalized.isBlank()) return searchDao.observeGallery(GALLERY_LIMIT).mapSearchRows()
+        if (mode == SearchMode.SEMANTIC) return requireNotNull(clipRepository).search(query.trim())
         val ftsQuery = toFtsQuery(normalized)
         if (ftsQuery.isBlank()) return flowOf(emptyList())
 

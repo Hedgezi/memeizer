@@ -32,6 +32,12 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(["adb", "-s", "device", "shell"], command[:4])
         self.assertEqual({"query": query}, json.loads(base64.b64decode(shlex.split(command[4])[-1])))
 
+    def test_semantic_mode_is_forwarded_to_real_repository(self):
+        with patch.object(backend, "call", return_value={"ok": True, "data": {"results": []}}) as call:
+            _, code = backend.run(self.args(command="search", query="a cat", mode="semantic"))
+        self.assertEqual(0, code)
+        self.assertEqual({"query": "a cat", "mode": "semantic"}, call.call_args.args[2])
+
     def test_wait_tracks_returned_id_and_reports_failure(self):
         responses = [
             {"ok": True, "data": {"work_id": "specific-job"}},

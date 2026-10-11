@@ -262,6 +262,7 @@ your PATH; it does not require sqlite3 or root. Run from the repository root:
 tools/backend status
 tools/backend search "челябинск"
 tools/backend search ""                 # browse the gallery
+tools/backend search --mode semantic "a surprised cat"
 tools/backend image 42
 tools/backend index --wait
 tools/backend index --force --wait --timeout 600
@@ -278,7 +279,9 @@ cancel work. `index` without `--wait` returns the queued work ID immediately.
 grouped by active flag and indexing status, and manual/periodic WorkManager jobs.
 A persisted grant does not guarantee that the underlying folder is still available.
 `search` uses the same repository as the UI, including query normalization and the
-100-result search / 100-image gallery limits. `image` returns the image, OCR and FTS
+100-result text search / 100-image gallery / 30-result semantic limits.
+`status` also reports the current CLIP model, ready/total/failed embeddings and separate
+CLIP work. See [the model guide](../tools/clip/README.md) before building a fresh checkout. `image` returns the image, OCR and FTS
 records, including inactive cached images; a missing ID returns an error.
 
 `index` appends a new manual job without cancelling existing jobs. It processes

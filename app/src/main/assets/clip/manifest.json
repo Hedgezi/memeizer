@@ -1,0 +1,56 @@
+{
+  "checkpoint": "wkcn/TinyCLIP-ViT-40M-32-Text-19M-LAION400M",
+  "revision": "95ec8197b3f2fe7f747865c61ca556cf0768b2f7",
+  "precision": "fp32",
+  "model_version": "tinyclip-95ec8197b3f2-fp32-v1",
+  "dimension": 512,
+  "opset": 17,
+  "tools": {
+    "torch": "2.14.0",
+    "transformers": "4.57.3",
+    "onnx": "1.20.1",
+    "onnxruntime": "1.25.0",
+    "Pillow": "12.3.0",
+    "ftfy": "6.3.1"
+  },
+  "tokens": {
+    "bos": 49406,
+    "eos": 49407,
+    "pad": 49407,
+    "length": 77
+  },
+  "preprocessing": {
+    "size": 224,
+    "mean": [
+      0.48145466,
+      0.4578275,
+      0.40821073
+    ],
+    "std": [
+      0.26862954,
+      0.26130258,
+      0.27577711
+    ],
+    "resize": "shorter-side-bicubic-antialias",
+    "crop": "center",
+    "color": "RGB-sRGB",
+    "orientation": "EXIF-transpose",
+    "scale": 0.00392156862745098
+  },
+  "licenses": {
+    "model": "MIT",
+    "onnxruntime": "MIT",
+    "source": "https://github.com/microsoft/Cream/blob/main/LICENSE"
+  },
+  "selection_status": "provisional; labeled meme evaluation and flagship measurements pending",
+  "files": {
+    "vision.onnx": "285612599a2ba375de9b7194dd01ba2a4b577d86f0a591faabdef736c8a1a277",
+    "text.onnx": "f242d891fe924916e6864737383f930397bc606582cdd903d4860a1ca4b4d7da",
+    "vocab.json": "5047b556ce86ccaf6aa22b3ffccfc52d391ea4accdab9c2f2407da5b742d4363",
+    "merges.txt": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a"
+  },
+  "tokenizer": {
+    "implementation": "CLIPTokenizerFast",
+    "normalization": "NFC, Unicode whitespace collapse, lowercase; no HTML unescape"
+  }
+}

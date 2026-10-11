@@ -15,12 +15,18 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.FilterChip
+import com.darkesttrololo.memeizer.data.search.SearchMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +47,9 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val viewerSession by viewModel.viewerSession.collectAsStateWithLifecycle()
+    // Input must update synchronously; asynchronous result/progress flows may lag fast IME edits.
+    var queryText by rememberSaveable { mutableStateOf(viewModel.uiState.value.query) }
+    LaunchedEffect(viewModel) { viewModel.onQueryChanged(queryText) }
 
     Column(
         modifier = Modifier
@@ -56,11 +65,35 @@ fun HomeScreen(
         ) {
             OutlinedTextField(
                 modifier = Modifier.weight(1f),
-                value = state.query,
-                onValueChange = viewModel::onQueryChanged,
-                placeholder = { Text(stringResource(R.string.search_hint)) },
+                value = queryText,
+                onValueChange = { queryText = it; viewModel.onQueryChanged(it) },
+                placeholder = { Text(stringResource(if (state.mode == SearchMode.SEMANTIC) R.string.semantic_search_hint else R.string.search_hint)) },
                 singleLine = true,
             )
+        }
+
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(selected = state.mode == SearchMode.TEXT, onClick = { viewModel.onModeChanged(SearchMode.TEXT) },
+                label = { Text(stringResource(R.string.search_mode_text)) })
+            FilterChip(selected = state.mode == SearchMode.SEMANTIC, onClick = { viewModel.onModeChanged(SearchMode.SEMANTIC) },
+                label = { Text(stringResource(R.string.search_mode_semantic)) })
+        }
+        if (state.mode == SearchMode.SEMANTIC) {
+            Text(
+                stringResource(R.string.semantic_english_description),
+                modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                stringResource(R.string.semantic_progress, state.clipProgress.ready, state.clipProgress.total, state.clipProgress.failed),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall,
+            )
+            if (state.modelFailed && state.content != HomeContentState.ModelError) {
+                Text(stringResource(R.string.semantic_model_error), modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -94,6 +127,8 @@ fun HomeScreen(
                 HomeContentState.NoFolders -> EmptyContent(R.string.home_add_folders)
                 HomeContentState.EmptyFolders -> EmptyContent(R.string.home_no_images)
                 HomeContentState.IndexingError -> EmptyContent(R.string.home_indexing_error)
+                HomeContentState.SemanticIndexNotReady -> EmptyContent(R.string.semantic_index_not_ready)
+                HomeContentState.ModelError -> EmptyContent(R.string.semantic_model_error)
                 HomeContentState.NoResults -> EmptyContent(R.string.home_no_results)
             }
         }

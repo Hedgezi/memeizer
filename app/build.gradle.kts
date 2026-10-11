@@ -110,6 +110,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.25.0")
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
@@ -126,3 +127,20 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+// Avoid producing an apparently working APK with absent models or Git LFS pointer files.
+val verifyClipAssets by tasks.registering {
+    val assets = layout.projectDirectory.dir("src/main/assets/clip")
+    val names = listOf("vision.onnx", "text.onnx", "vocab.json", "merges.txt", "manifest.json")
+    inputs.files(names.map { assets.file(it) })
+    doLast {
+        names.forEach { name ->
+            val asset = assets.file(name).asFile
+            val minimumBytes = if (name.endsWith(".onnx")) 1024 else 100
+            if (!asset.isFile || asset.length() < minimumBytes) {
+                throw GradleException("Missing CLIP asset $name. Follow tools/clip/README.md to export and install the bundled model.")
+            }
+        }
+    }
+}
+tasks.named("preBuild").configure { dependsOn(verifyClipAssets) }

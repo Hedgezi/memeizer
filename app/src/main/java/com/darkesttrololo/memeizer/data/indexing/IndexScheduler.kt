@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
 
 class IndexScheduler(context: Context) {
@@ -29,6 +30,23 @@ class IndexScheduler(context: Context) {
             ) { manual, periodic ->
                 indexWorkState(manual, periodic)
             },
+        )
+    }
+
+    val clipWorkState: Flow<IndexWorkState> = flow {
+        emitAll(workManager.getWorkInfosForUniqueWorkFlow(ClipIndexWorker.WORK_NAME).map { work ->
+            indexWorkState(work, emptyList(), CLIP_SEQUENCE_TAG_PREFIX)
+        })
+    }
+
+    fun enqueueClipIndexing() {
+        workManager.enqueueUniqueWork(
+            ClipIndexWorker.WORK_NAME,
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
+            OneTimeWorkRequestBuilder<ClipIndexWorker>()
+                .addTag("$CLIP_SEQUENCE_TAG_PREFIX${nextSequence()}")
+                .setConstraints(Constraints.Builder().setRequiresStorageNotLow(true).build())
+                .build(),
         )
     }
 
@@ -83,8 +101,9 @@ data class IndexWorkState(
 internal fun indexWorkState(
     manualWork: List<WorkInfo>,
     periodicWork: List<WorkInfo>,
+    sequenceTagPrefix: String = MANUAL_SEQUENCE_TAG_PREFIX,
 ): IndexWorkState {
-    val currentManual = selectCurrentManualWork(manualWork)
+    val currentManual = selectCurrentManualWork(manualWork, sequenceTagPrefix)
     val manualLoading = currentManual?.state in setOf(
         WorkInfo.State.ENQUEUED,
         WorkInfo.State.RUNNING,
@@ -98,10 +117,10 @@ internal fun indexWorkState(
     )
 }
 
-private fun selectCurrentManualWork(work: List<WorkInfo>): WorkInfo? {
+private fun selectCurrentManualWork(work: List<WorkInfo>, sequenceTagPrefix: String): WorkInfo? {
     val sequenced = work.mapNotNull { info ->
         info.tags.firstNotNullOfOrNull { tag ->
-            tag.removePrefix(MANUAL_SEQUENCE_TAG_PREFIX).takeIf { it != tag }?.toLongOrNull()
+            tag.removePrefix(sequenceTagPrefix).takeIf { it != tag }?.toLongOrNull()
         }?.let { it to info }
     }
     if (sequenced.isNotEmpty()) return sequenced.maxBy { it.first }.second
@@ -113,3 +132,5 @@ private fun selectCurrentManualWork(work: List<WorkInfo>): WorkInfo? {
 }
 
 private const val MANUAL_SEQUENCE_TAG_PREFIX = "meme_manual_sequence:"
+
+private const val CLIP_SEQUENCE_TAG_PREFIX = "meme_clip_sequence:"

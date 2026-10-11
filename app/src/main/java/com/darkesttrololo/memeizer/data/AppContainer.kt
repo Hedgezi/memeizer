@@ -21,7 +21,7 @@ class AppContainer(context: Context) {
         appContext,
         MemeizerDatabase::class.java,
         "memeizer.db",
-    ).build()
+    ).addMigrations(MemeizerDatabase.MIGRATION_1_2).build()
 
     private val folderScanner = FolderScanner(appContext)
     private val ocrEngines = listOf(
@@ -30,13 +30,16 @@ class AppContainer(context: Context) {
     )
 
     val folderRepository = FolderRepository(database, FolderOverlapChecker(appContext.contentResolver)::overlaps)
+    val indexScheduler = IndexScheduler(appContext)
+    val clipEngine = com.darkesttrololo.memeizer.data.clip.OnnxClipEmbeddingEngine(appContext)
+    val clipRepository = com.darkesttrololo.memeizer.data.clip.ClipRepository(database, clipEngine)
     val indexRepository = IndexRepository(
         database = database,
         scanner = folderScanner::scan,
         ocrEngines = ocrEngines,
+        onFilesUpdated = indexScheduler::enqueueClipIndexing,
     )
-    val searchRepository = SearchRepository(database.searchDao())
-    val indexScheduler = IndexScheduler(appContext)
+    val searchRepository = SearchRepository(database.searchDao(), clipRepository)
 
-    val workerFactory: WorkerFactory = MemeizerWorkerFactory(indexRepository)
+    val workerFactory: WorkerFactory = MemeizerWorkerFactory(indexRepository, clipRepository)
 }

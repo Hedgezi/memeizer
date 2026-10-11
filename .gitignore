@@ -16,3 +16,13 @@ keystore.properties
 signing.properties
 *.sha256
 release-artifacts/
+
+# Kotlin compiler session files and private CLIP evaluation data.
+.kotlin/
+tools/clip/__pycache__/
+
+# Reproducible CLIP weights are generated locally; the APK bundles them.
+app/src/main/assets/clip/*.onnx
+
+# Private local CLIP test images, labels and reports.
+/clip_test/

@@ -11,6 +11,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.darkesttrololo.memeizer.data.indexing.ClipIndexWorker
+import com.darkesttrololo.memeizer.data.search.SearchMode
 import com.darkesttrololo.memeizer.data.indexing.IndexWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -61,10 +63,21 @@ class DebugBackendProvider : ContentProvider() {
                 .put("images", rows("SELECT active, index_status, COUNT(*) AS count FROM indexed_images GROUP BY active, index_status"))
                 .put("manual_work", workList(IndexWorker.MANUAL_WORK_NAME))
                 .put("periodic_work", workList(IndexWorker.PERIODIC_WORK_NAME))
+                .put("clip_work", workList(ClipIndexWorker.WORK_NAME))
+                .put("clip", app.container.clipRepository.progress.first().let {
+                    JSONObject().put("model", app.container.clipEngine.modelVersion)
+                        .put("ready", it.ready).put("total", it.total).put("failed", it.failed)
+                        .put("model_error", app.container.clipRepository.modelError.value ?: JSONObject.NULL)
+                })
         }
         "search" -> {
             val query = input.getString("query")
-            val results = app.container.searchRepository.search(query).first()
+            val mode = when (input.optString("mode", "text")) {
+                "text" -> SearchMode.TEXT
+                "semantic" -> SearchMode.SEMANTIC
+                else -> throw IllegalArgumentException("Unknown search mode")
+            }
+            val results = app.container.searchRepository.search(query, mode).first()
             JSONObject().put("query", query).put("count", results.size).put("results", JSONArray().apply {
                 results.forEach { result ->
                     put(JSONObject().put("image_id", result.imageId).put("uri", result.uri)
