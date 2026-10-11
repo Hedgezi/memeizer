@@ -122,11 +122,15 @@ arm64 and a 16 KiB-page device still require runtime verification.
 
 ## Android checks
 
-JVM tests cover vector normalization/encoding, corruption, ties, top-30, debounce,
+JVM tests run with a 256 MiB heap and cover crop-only bicubic preprocessing (including
+1×20,000 and 20,000×1 inputs), failure states, retry submission guards and scheduling
+errors, plus vector normalization/encoding, corruption, ties, top-30, debounce,
 request cancellation and model-error snapshots. Instrumentation tests cover migration
 with folder/OCR/FTS preservation, folder selection races, changed content, isolated
 file failures, process-cancellation recovery, model changes, bounded runs, 256-row
-search pages and the Python reference fixtures.
+search pages and the Python reference fixtures. Additional synthetic tests cover
+decoder boundaries, selective failure resets, vector/OCR preservation, retry after
+scheduling failure, and the actual retry button/worker continuation beyond 64 images.
 
 ```bash
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew :app:testDebugUnitTest \
@@ -157,8 +161,40 @@ tools/backend search ""
 CLIP work runs after startup and successful folder scans (including periodic scans).
 Each run processes at most 64 images, stopping before starting another image after
 8 minutes. Results are persisted individually. Current failures are retained until
-the image's content key or model changes; model failures are retried on restart or
-another successful folder scan. Searching does not require successful OCR.
+an explicit **Retry failed images** action or an image content/model change. The
+retry button is available beneath semantic progress, including with an empty query;
+it is disabled while CLIP work is queued/running or scheduling is in progress.
+Scheduling errors leave a retry action available even when rows are already pending.
+Successful embeddings and OCR are preserved. Model failures are retried on restart
+or another successful folder scan. Images exceeding 4,194,304 pixels or 4096 pixels
+on either side fail individually in the decoder header callback before pixel
+allocation; they are not downsampled. When all current images fail, a semantic
+query shows a completed-failure message instead of waiting for indexing. Searching
+does not require successful OCR.
+
+## Semantic failure recovery verification (2026-10-11)
+
+The model version and database version remain unchanged. The final checks passed:
+
+- 24 app JVM tests with a 256 MiB heap. Crop output is bit-for-bit equal to the
+  previous full-resize algorithm on the regression inputs; existing Python pixel
+  fixtures pass. Additional allocations were 865,776 bytes for 1×20,000 and
+  648,032 bytes for 20,000×1, with finite 224×224 RGB tensors.
+- Debug APK and Android-test APK builds. Android Lint: 0 errors, 9 warnings.
+- 22 data/model instrumentation tests on the API 31 x86_64 emulator, including
+  decoder boundaries, retry selection/exclusions, duplicate submission guards,
+  scheduling failure recovery, preserved vectors/OCR/FTS and embedding parity
+  including EXIF rotation.
+- One separate UI instrumentation test used the actual retry button with an empty
+  query, the real ViewModel, WorkManager and bundled encoders. 65 valid synthetic
+  images completed in two worker runs despite duplicate taps. One oversized image
+  failed again after another explicit retry, with no automatic retry loop.
+
+The UI test cleaned only its own synthetic folder, rows and files. Existing ready
+vectors were compared before and after; the original gallery remained 7/7 ready.
+The backend harness still returned one `coffee` match, two `дедлайн` matches and
+seven images for the empty text query. These checks establish recovery behavior
+on this emulator, not physical-device memory or retrieval quality measurements.
 
 ## Manual offline smoke check
 

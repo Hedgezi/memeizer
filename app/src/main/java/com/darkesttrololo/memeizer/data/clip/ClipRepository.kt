@@ -23,10 +23,25 @@ class ClipRepository(
     private val engine: ClipEmbeddingEngine,
     private val clock: () -> Long = { android.os.SystemClock.elapsedRealtime() },
 ) {
+    private val retryMutex = kotlinx.coroutines.sync.Mutex()
     val modelError = MutableStateFlow<String?>(null)
     val progress = database.clipDao().observeProgress(engine.modelVersion)
 
-    /** Returns true when another bounded run is needed. Failed files wait for a content change. */
+    /** Await scheduling even if a previous submission reset rows but failed to enqueue them. */
+    suspend fun retryFailedImages(enqueue: suspend () -> Unit): Int = withContext(Dispatchers.IO) {
+        if (!retryMutex.tryLock()) return@withContext 0
+        try {
+            val reset = database.clipIndexingMutex.withLock {
+                database.clipDao().resetFailures(engine.modelVersion)
+            }
+            enqueue()
+            reset
+        } finally {
+            retryMutex.unlock()
+        }
+    }
+
+    /** Returns true when another bounded run is needed. Failed files wait for an explicit retry or content change. */
     suspend fun indexBatch(): Boolean = withContext(Dispatchers.IO) {
         database.clipIndexingMutex.withLock {
             val started = clock()

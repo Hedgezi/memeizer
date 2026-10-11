@@ -15,7 +15,7 @@ class ClipIndexWorker(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = try {
         if (repository.indexBatch()) {
-            (applicationContext as MemeizerApp).container.indexScheduler.enqueueClipIndexing()
+            (applicationContext as MemeizerApp).container.indexScheduler.enqueueClipIndexingAndAwait()
         }
         Result.success()
     } catch (cancelled: CancellationException) {

@@ -85,13 +85,9 @@ class OnnxClipEmbeddingEngine(context: Context) : ClipEmbeddingEngine {
 
     override suspend fun embedImage(uri: Uri): FloatArray = withContext(Dispatchers.IO) {
         initialize()
-        // ImageDecoder applies EXIF orientation; software RGB avoids GPU-only bitmap pixels.
-        val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { decoder, _, _ ->
-            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-            decoder.setTargetColorSpace(android.graphics.ColorSpace.get(android.graphics.ColorSpace.Named.SRGB))
-        }
+        val bitmap = ClipImageDecoder.decode(ImageDecoder.createSource(context.contentResolver, uri))
         val input = try {
-            val argb = IntArray(bitmap.width * bitmap.height)
+            val argb = IntArray((bitmap.width.toLong() * bitmap.height).toInt())
             bitmap.getPixels(argb, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             ClipPreprocessor.pixels(argb, bitmap.width, bitmap.height, imageSize, mean, std)
         } finally { bitmap.recycle() }

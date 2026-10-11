@@ -125,6 +125,129 @@ class ClipRegressionTest {
         assertEquals(ClipProgress(2, 1, 1), repository.progress.first())
     }
 
+    @Test fun decoderOversizeFailureDoesNotStopNeighboringValidFile() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val files = listOf(syntheticPng(context, 4097, 1), syntheticPng(context, 16, 16))
+        try {
+            val folder = folder()
+            files.forEachIndexed { index, file ->
+                val id = image(folder, "decode-$index")
+                db.imageDao().update(db.imageDao().findById(id)!!.copy(uri = Uri.fromFile(file).toString()))
+            }
+            imageEmbedding = { uri ->
+                ClipImageDecoder.decode(android.graphics.ImageDecoder.createSource(context.contentResolver, uri)).recycle()
+                floatArrayOf(1f, 0f)
+            }
+            val repository = ClipRepository(db, engine)
+            assertFalse(repository.indexBatch())
+            assertEquals(ClipProgress(2, 1, 1), repository.progress.first())
+            assertFalse(repository.indexBatch()) // No automatic retry loop.
+        } finally { files.forEach { it.delete() } }
+    }
+
+    private suspend fun failure(id: Long, model: String = version, key: String? = null) {
+        db.clipDao().save(ClipEmbeddingEntity(id, model, key ?: db.imageDao().findById(id)!!.contentKey,
+            2, byteArrayOf(9), "FAILED", "synthetic failure", 2))
+    }
+
+    private fun embedding(id: Long, model: String = version): Triple<String, ByteArray?, String?> =
+        db.openHelper.readableDatabase.query(
+            "SELECT status, vector, error FROM clip_embeddings WHERE image_id = ? AND model_version = ?",
+            arrayOf<Any>(id, model),
+        ).use {
+            assertTrue(it.moveToFirst())
+            Triple(it.getString(0), if (it.isNull(1)) null else it.getBlob(1), if (it.isNull(2)) null else it.getString(2))
+        }
+
+    @Test fun retrySelectsOnlyCurrentActiveFailuresAndPreservesSuccessfulVectorsAndOcr() = runBlocking {
+        val folder = folder()
+        val failed = image(folder, "failed")
+        val ready = image(folder, "ready")
+        val stale = image(folder, "stale")
+        val inactive = image(folder, "inactive")
+        val otherModel = image(folder, "other-model")
+        val disabledFolder = db.folderDao().insert(IndexedFolderEntity(
+            treeUri = "content://test/disabled", displayName = "disabled", enabled = false, createdAt = 1, updatedAt = 1))
+        val disabled = image(disabledFolder, "disabled")
+        failure(failed)
+        failure(stale, key = "old-content")
+        failure(inactive)
+        failure(otherModel, model = "old-model")
+        failure(disabled)
+        save(ready, floatArrayOf(1f, 0f))
+        val readyBefore = embedding(ready).second
+        db.imageDao().update(db.imageDao().findById(inactive)!!.copy(active = false))
+        db.ocrDao().insert(OcrResultEntity(imageId = failed, engine = "test", language = "latin",
+            text = "cat кот", confidence = null, errorMessage = null, createdAt = 1, updatedAt = 1))
+        db.searchDao().insert(MemeSearchFtsEntity(imageId = failed, text = "cat кот"))
+        db.imageDao().update(db.imageDao().findById(failed)!!.copy(indexStatus = "INDEXED"))
+        assertEquals(1, db.clipDao().resetFailures(version))
+        assertEquals(Triple("PENDING", null, null), embedding(failed))
+        assertEquals(0, db.clipDao().resetFailures(version))
+        assertEquals("READY", embedding(ready).first)
+        assertArrayEquals(readyBefore, embedding(ready).second)
+        for (id in listOf(stale, inactive, disabled)) assertEquals("FAILED", embedding(id).first)
+        assertEquals("FAILED", embedding(otherModel, "old-model").first)
+        assertEquals("INDEXED", db.imageDao().findById(failed)!!.indexStatus)
+        assertEquals(failed, db.searchDao().search("cat*", 10).first().single().id)
+        db.openHelper.readableDatabase.query("SELECT text FROM ocr_results WHERE image_id = $failed").use {
+            assertTrue(it.moveToFirst()); assertEquals("cat кот", it.getString(0))
+        }
+    }
+
+    @Test fun retrySchedulingFailureCanResubmitAlreadyResetRowsWithoutChangingReadyVector() = runBlocking {
+        val folder = folder()
+        val failed = image(folder, "failed")
+        val ready = image(folder, "ready")
+        failure(failed)
+        save(ready, floatArrayOf(1f, 0f))
+        val before = embedding(ready).second
+        val repository = ClipRepository(db, engine)
+        try {
+            repository.retryFailedImages { throw java.io.IOException("synthetic scheduler failure") }
+            fail("Scheduling failure must reach the ViewModel")
+        } catch (_: java.io.IOException) { }
+        assertEquals("PENDING", embedding(failed).first)
+        var scheduled = false
+        assertEquals(0, repository.retryFailedImages { scheduled = true })
+        assertTrue(scheduled)
+        assertArrayEquals(before, embedding(ready).second)
+        assertFalse(repository.indexBatch())
+        assertEquals(ClipProgress(2, 2, 0), repository.progress.first())
+    }
+
+    @Test fun duplicateRepositorySubmissionsAreIgnoredUntilSchedulingAcceptance() = runBlocking {
+        failure(image(folder()))
+        val entered = CompletableDeferred<Unit>()
+        val acceptance = CompletableDeferred<Unit>()
+        var schedules = 0
+        val repository = ClipRepository(db, engine)
+        val first = async { repository.retryFailedImages { schedules++; entered.complete(Unit); acceptance.await() } }
+        withTimeout(10_000) { entered.await() }
+        assertEquals(0, repository.retryFailedImages { schedules++ })
+        assertEquals(1, schedules)
+        acceptance.complete(Unit)
+        assertEquals(1, first.await())
+    }
+
+    @Test fun retryContinuesBeyond64AndRepeatedFileErrorsStayFailed() = runBlocking {
+        val folder = folder()
+        repeat(65) { failure(image(folder, "retry-$it")) }
+        val repository = ClipRepository(db, engine)
+        assertEquals(65, repository.retryFailedImages {})
+        assertTrue(repository.indexBatch())
+        assertEquals(ClipProgress(65, 64, 0), repository.progress.first())
+        assertFalse(repository.indexBatch())
+        assertEquals(ClipProgress(65, 65, 0), repository.progress.first())
+        val bad = image(folder, "bad")
+        failure(bad)
+        imageEmbedding = { throw java.io.IOException("synthetic persistent error") }
+        assertEquals(1, repository.retryFailedImages {})
+        assertFalse(repository.indexBatch())
+        assertEquals(ClipProgress(66, 65, 1), repository.progress.first())
+        assertFalse(repository.indexBatch())
+    }
+
     @Test fun modelFailureLeavesFilesPendingAndReportsSeparateError() = runBlocking {
         image(folder())
         load = { throw java.io.IOException("missing encoder") }

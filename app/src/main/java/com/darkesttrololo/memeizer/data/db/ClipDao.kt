@@ -12,6 +12,17 @@ interface ClipDao {
     suspend fun save(embedding: ClipEmbeddingEntity)
 
     @Query("""
+        UPDATE clip_embeddings SET status = 'PENDING', vector = NULL, error = NULL
+        WHERE model_version = :model AND status = 'FAILED' AND EXISTS (
+            SELECT 1 FROM indexed_images i
+            JOIN indexed_folders f ON f.id = i.folder_id AND f.enabled = 1
+            WHERE i.id = clip_embeddings.image_id AND i.active = 1
+                AND i.content_key = clip_embeddings.content_key
+        )
+    """)
+    suspend fun resetFailures(model: String): Int
+
+    @Query("""
         SELECT i.*, f.selection_version AS selectionVersion FROM indexed_images i
         JOIN indexed_folders f ON f.id = i.folder_id AND f.enabled = 1
         LEFT JOIN clip_embeddings e ON e.image_id = i.id AND e.model_version = :model

@@ -9,6 +9,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkInfo
 import androidx.work.workDataOf
+import androidx.work.await
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
@@ -35,20 +36,28 @@ class IndexScheduler(context: Context) {
 
     val clipWorkState: Flow<IndexWorkState> = flow {
         emitAll(workManager.getWorkInfosForUniqueWorkFlow(ClipIndexWorker.WORK_NAME).map { work ->
-            indexWorkState(work, emptyList(), CLIP_SEQUENCE_TAG_PREFIX)
+            indexWorkState(work, emptyList(), CLIP_SEQUENCE_TAG_PREFIX).copy(
+                isLoading = work.any { !it.state.isFinished },
+            )
         })
     }
 
     fun enqueueClipIndexing() {
-        workManager.enqueueUniqueWork(
-            ClipIndexWorker.WORK_NAME,
-            ExistingWorkPolicy.APPEND_OR_REPLACE,
-            OneTimeWorkRequestBuilder<ClipIndexWorker>()
-                .addTag("$CLIP_SEQUENCE_TAG_PREFIX${nextSequence()}")
-                .setConstraints(Constraints.Builder().setRequiresStorageNotLow(true).build())
-                .build(),
-        )
+        enqueueClipWork()
     }
+
+    suspend fun enqueueClipIndexingAndAwait() {
+        enqueueClipWork().await()
+    }
+
+    private fun enqueueClipWork() = workManager.enqueueUniqueWork(
+        ClipIndexWorker.WORK_NAME,
+        ExistingWorkPolicy.APPEND_OR_REPLACE,
+        OneTimeWorkRequestBuilder<ClipIndexWorker>()
+            .addTag("$CLIP_SEQUENCE_TAG_PREFIX${nextSequence()}")
+            .setConstraints(Constraints.Builder().setRequiresStorageNotLow(true).build())
+            .build(),
+    )
 
     fun schedulePeriodicIndexing() {
         val request = PeriodicWorkRequestBuilder<IndexWorker>(1, TimeUnit.HOURS)

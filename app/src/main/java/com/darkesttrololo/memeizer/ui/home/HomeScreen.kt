@@ -21,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -90,6 +91,17 @@ fun HomeScreen(
                 stringResource(R.string.semantic_progress, state.clipProgress.ready, state.clipProgress.total, state.clipProgress.failed),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall,
             )
+            if (state.showSemanticRetry) {
+                TextButton(
+                    onClick = viewModel::retryFailedImages,
+                    enabled = state.semanticRetryEnabled,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) { Text(stringResource(R.string.semantic_retry_failed)) }
+            }
+            if (state.semanticRetryFailed) {
+                Text(stringResource(R.string.semantic_retry_scheduling_error), modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
             if (state.modelFailed && state.content != HomeContentState.ModelError) {
                 Text(stringResource(R.string.semantic_model_error), modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -128,6 +140,7 @@ fun HomeScreen(
                 HomeContentState.EmptyFolders -> EmptyContent(R.string.home_no_images)
                 HomeContentState.IndexingError -> EmptyContent(R.string.home_indexing_error)
                 HomeContentState.SemanticIndexNotReady -> EmptyContent(R.string.semantic_index_not_ready)
+                HomeContentState.SemanticIndexFailed -> EmptyContent(R.string.semantic_index_failed)
                 HomeContentState.ModelError -> EmptyContent(R.string.semantic_model_error)
                 HomeContentState.NoResults -> EmptyContent(R.string.home_no_results)
             }

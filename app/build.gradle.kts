@@ -144,3 +144,9 @@ val verifyClipAssets by tasks.registering {
     }
 }
 tasks.named("preBuild").configure { dependsOn(verifyClipAssets) }
+
+// Exercise aspect-ratio regressions in a bounded heap using the existing synthetic references.
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "256m"
+    systemProperty("clipReferenceDir", layout.projectDirectory.dir("src/androidTest/assets/clip-reference").asFile.absolutePath)
+}
